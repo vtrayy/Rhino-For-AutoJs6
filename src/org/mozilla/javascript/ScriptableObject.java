@@ -2147,7 +2147,9 @@ public abstract class ScriptableObject
         if (base instanceof ConstProperties) {
             ConstProperties cp = (ConstProperties) base;
 
-            if (cp.isConst(name)) throw ScriptRuntime.typeErrorById("msg.const.redecl", name);
+            if (cp.isConst(name)) {
+                throw ScriptRuntime.typeErrorById("msg.const.redecl", name);
+            }
         }
         if (isConst) throw ScriptRuntime.typeErrorById("msg.var.redecl", name);
     }
