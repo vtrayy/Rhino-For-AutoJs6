@@ -50,8 +50,7 @@ class JavaMembers {
     }
 
     JavaMembers(Scriptable scope, Class<?> cl, boolean includeProtected) {
-        try {
-            Context cx = ContextFactory.getGlobal().enterContext();
+        try (Context cx = ContextFactory.getGlobal().enterContext()) {
             ClassShutter shutter = cx.getClassShutter();
             if (shutter != null && !shutter.visibleToScripts(cl.getName())) {
                 throw Context.reportRuntimeErrorById("msg.access.prohibited", cl.getName());
@@ -61,8 +60,19 @@ class JavaMembers {
             this.cl = cl;
             boolean includePrivate = cx.hasFeature(Context.FEATURE_ENHANCED_JAVA_ACCESS);
             reflect(cx, scope, includeProtected, includePrivate);
-        } finally {
-            Context.exit();
+        }
+    }
+
+    /**
+     * This method returns true if we are on a "modular" version of Java (Java 11 or up). It does
+     * not use the SourceVersion class because this is not present on Android.
+     */
+    private static boolean isModularJava() {
+        try {
+            Class.class.getMethod("getModule");
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
         }
     }
 

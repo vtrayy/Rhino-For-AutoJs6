@@ -297,4 +297,14 @@ public class NativeJavaClass extends NativeJavaObject implements Function {
     }
 
     private Map<String, FieldAndMethods> staticFieldAndMethods;
+
+    @Override
+    public boolean equals(Object obj) {
+        return super.equals(obj);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }

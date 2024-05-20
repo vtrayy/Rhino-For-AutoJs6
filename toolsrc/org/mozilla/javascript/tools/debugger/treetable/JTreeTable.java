@@ -201,6 +201,7 @@ public class JTreeTable extends JTable {
         }
 
         /** TreeCellRenderer method. Overridden to update the visible row. */
+        @Override
         public Component getTableCellRendererComponent(
                 JTable table,
                 Object value,
@@ -218,6 +219,7 @@ public class JTreeTable extends JTable {
 
     /** TreeTableCellEditor implementation. Component returned is the JTree. */
     public class TreeTableCellEditor extends AbstractCellEditor implements TableCellEditor {
+        @Override
         public Component getTableCellEditorComponent(
                 JTable table, Object value, boolean isSelected, int r, int c) {
             return tree;
@@ -250,11 +252,12 @@ public class JTreeTable extends JTable {
                                         tree,
                                         me.getID(),
                                         me.getWhen(),
-                                        me.getModifiers(),
+                                        me.getModifiersEx(),
                                         me.getX() - getCellRect(0, counter, true).x,
                                         me.getY(),
                                         me.getClickCount(),
-                                        me.isPopupTrigger());
+                                        me.isPopupTrigger(),
+                                        me.getButton());
                         tree.dispatchEvent(newME);
                         break;
                     }
@@ -350,6 +353,7 @@ public class JTreeTable extends JTable {
          * the list changse.
          */
         class ListSelectionHandler implements ListSelectionListener {
+            @Override
             public void valueChanged(ListSelectionEvent e) {
                 updateSelectedPathsFromSelectedRows();
             }

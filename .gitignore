@@ -29,3 +29,7 @@ bin/
 local.properties
 docs
 examples
+
+# idea
+rhino.ipr
+rhino.iws

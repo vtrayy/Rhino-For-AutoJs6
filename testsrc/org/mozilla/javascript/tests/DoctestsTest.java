@@ -48,6 +48,7 @@ public class DoctestsTest {
         return TestUtils.recursiveListFiles(
                 new File(baseDirectory),
                 new FileFilter() {
+                    @Override
                     public boolean accept(File f) {
                         String name = f.getName();
                         return !name.contains("feature18enabled")
@@ -63,7 +64,7 @@ public class DoctestsTest {
         return new String(buf);
     }
 
-    @Parameters(name = "{0}")
+    @Parameters(name = "{0} opt:{2}")
     public static Collection<Object[]> doctestValues() throws IOException {
         File[] doctests = getDoctestFiles();
         List<Object[]> result = new ArrayList<Object[]>();
@@ -88,8 +89,7 @@ public class DoctestsTest {
     @Test
     public void runDoctest() throws Exception {
         ContextFactory factory = ContextFactory.getGlobal();
-        Context cx = factory.enterContext();
-        try {
+        try (Context cx = factory.enterContext()) {
             cx.setOptimizationLevel(optimizationLevel);
             Global global = new Global(cx);
             // global.runDoctest throws an exception on any failure
@@ -98,8 +98,6 @@ public class DoctestsTest {
         } catch (Exception ex) {
             System.out.println(name + "(" + optimizationLevel + "): FAILED due to " + ex);
             throw ex;
-        } finally {
-            Context.exit();
         }
     }
 }

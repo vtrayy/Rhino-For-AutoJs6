@@ -137,11 +137,21 @@ public final class Interpreter extends Icode implements Evaluator {
                     if (idata.itsFunctionType == FunctionNode.ARROW_FUNCTION) {
                         scope =
                                 ScriptRuntime.createArrowFunctionActivation(
-                                        fnOrScript, scope, args, idata.isStrict);
+                                        fnOrScript,
+                                        cx,
+                                        scope,
+                                        args,
+                                        idata.isStrict,
+                                        idata.argsHasRest);
                     } else {
                         scope =
                                 ScriptRuntime.createFunctionActivation(
-                                        fnOrScript, scope, args, idata.isStrict);
+                                        fnOrScript,
+                                        cx,
+                                        scope,
+                                        args,
+                                        idata.isStrict,
+                                        idata.argsHasRest);
                     }
                 }
             } else {
@@ -188,6 +198,26 @@ public final class Interpreter extends Icode implements Evaluator {
             for (int i = definedArgs; i != idata.itsMaxVars; ++i) {
                 stack[i] = Undefined.instance;
             }
+
+            if (idata.argsHasRest) {
+                Object[] vals;
+                int offset = idata.argCount - 1;
+                if (argCount >= idata.argCount) {
+                    vals = new Object[argCount - offset];
+
+                    argShift = argShift + offset;
+                    for (int valsIdx = 0; valsIdx != vals.length; ++argShift, ++valsIdx) {
+                        Object val = args[argShift];
+                        if (val == UniqueTag.DOUBLE_MARK) {
+                            val = ScriptRuntime.wrapNumber(argsDbl[argShift]);
+                        }
+                        vals[valsIdx] = val;
+                    }
+                } else {
+                    vals = ScriptRuntime.emptyArgs;
+                }
+                stack[offset] = cx.newArray(scope, vals);
+            }
         }
 
         CallFrame cloneFrozen() {
@@ -222,8 +252,7 @@ public final class Interpreter extends Icode implements Evaluator {
                 // one. It is required as some objects within fully initialized
                 // global scopes (notably, XMLLibImpl) need to have a top scope
                 // in order to evaluate their attributes.
-                final Context cx = Context.enter();
-                try {
+                try (Context cx = Context.enter()) {
                     if (ScriptRuntime.hasTopCall(cx)) {
                         return equalsInTopScope(other).booleanValue();
                     }
@@ -237,8 +266,6 @@ public final class Interpreter extends Icode implements Evaluator {
                                             ScriptRuntime.emptyArgs,
                                             isStrictTopFrame()))
                             .booleanValue();
-                } finally {
-                    Context.exit();
                 }
             }
             return false;

@@ -4,8 +4,12 @@
 
 package org.mozilla.javascript.tests;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import javax.xml.parsers.ParserConfigurationException;
-import junit.framework.TestCase;
+import org.junit.Test;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.Scriptable;
@@ -15,7 +19,7 @@ import org.mozilla.javascript.Scriptable;
  *
  * @author Chris Smith
  */
-public class XMLSecureParserTest extends TestCase {
+public class XMLSecureParserTest {
 
     private static final String XML_PROPERTY = "javax.xml.parsers.DocumentBuilderFactory";
     private static final String DBF_CLASSNAME = "org.mozilla.javascript.tests.CustomTestDBF";
@@ -26,11 +30,14 @@ public class XMLSecureParserTest extends TestCase {
      * Test first that XML can be run directly with the default XML parser for this JRE. Then inject
      * a custom parser to test that the security settings are being applied properly
      */
-    public void testXmlSecureConfiguration() {
+    @Test
+    public void xmlSecureConfiguration() {
         CALLED_BY_XML_PARSER = false;
 
         // run with defaults for this JRE
-        executeXML(ContextFactory.getGlobal().enterContext());
+        try (Context cx = ContextFactory.getGlobal().enterContext()) {
+            executeXML(cx);
+        }
         assertFalse(CALLED_BY_XML_PARSER);
 
         // store the original setting for xml, if any
@@ -39,7 +46,9 @@ public class XMLSecureParserTest extends TestCase {
             // inject our own xml parser
             System.setProperty(XML_PROPERTY, DBF_CLASSNAME);
             // run with our injected parser
-            executeXML(ContextFactory.getGlobal().enterContext());
+            try (Context cx = ContextFactory.getGlobal().enterContext()) {
+                executeXML(cx);
+            }
         } catch (RuntimeException e) {
             // Our parser immediately throws a ParserConfigurationException on creating a
             // documentbuilder,
@@ -68,11 +77,14 @@ public class XMLSecureParserTest extends TestCase {
      * Test the same as above, but with the insecure configuration. This means neither the default
      * xml parser nor the custom xml parser should be configured with the secure features.
      */
-    public void testXmlInsecureConfiguration() {
+    @Test
+    public void xmlInsecureConfiguration() {
         CALLED_BY_XML_PARSER = false;
 
         // run with defaults for this JRE
-        executeXML(new InsecureContextFactory().enterContext());
+        try (Context cx = new InsecureContextFactory().enterContext()) {
+            executeXML(cx);
+        }
         assertFalse(CALLED_BY_XML_PARSER);
 
         // store the original setting for xml, if any
@@ -81,7 +93,9 @@ public class XMLSecureParserTest extends TestCase {
             // inject our own xml parser
             System.setProperty(XML_PROPERTY, DBF_CLASSNAME);
             // run with our injected parser
-            executeXML(new InsecureContextFactory().enterContext());
+            try (Context cx = new InsecureContextFactory().enterContext()) {
+                executeXML(cx);
+            }
         } catch (RuntimeException e) {
             // Our parser immediately throws a ParserConfigurationException on creating a
             // documentbuilder,
@@ -107,12 +121,8 @@ public class XMLSecureParserTest extends TestCase {
     }
 
     private void executeXML(Context cx) {
-        try {
-            Scriptable scope = cx.initStandardObjects();
-            cx.evaluateString(scope, "new XML('<a></a>').toXMLString();", "source", 1, null);
-        } finally {
-            Context.exit();
-        }
+        Scriptable scope = cx.initStandardObjects();
+        cx.evaluateString(scope, "new XML('<a></a>').toXMLString();", "source", 1, null);
     }
 
     class InsecureContextFactory extends ContextFactory {
