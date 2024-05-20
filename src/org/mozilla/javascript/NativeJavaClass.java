@@ -28,7 +28,8 @@ public class NativeJavaClass extends NativeJavaObject implements Function {
     // Special property for getting the underlying Java class object.
     static final String javaClassPropertyName = "__javaObject__";
 
-    public NativeJavaClass() {}
+    public NativeJavaClass() {
+    }
 
     public NativeJavaClass(Scriptable scope, Class<?> cl) {
         this(scope, cl, false);
@@ -61,11 +62,19 @@ public class NativeJavaClass extends NativeJavaObject implements Function {
         // for our prototype to create an object of the correct type.
         // We don't really care what the object is, since we're returning
         // one constructed out of whole cloth, so we return null.
-        if (name.equals("prototype")) return null;
+        if (name.equals("prototype")) {
+            return null;
+        }
+
+        if (name.equals("class")) {
+            return javaObject instanceof Class<?> ? javaObject : javaObject.getClass();
+        }
 
         if (staticFieldAndMethods != null) {
             Object result = staticFieldAndMethods.get(name);
-            if (result != null) return result;
+            if (result != null) {
+                return result;
+            }
         }
 
         if (members.has(name, true)) {
@@ -108,9 +117,15 @@ public class NativeJavaClass extends NativeJavaObject implements Function {
 
     @Override
     public Object getDefaultValue(Class<?> hint) {
-        if (hint == null || hint == ScriptRuntime.StringClass) return this.toString();
-        if (hint == ScriptRuntime.BooleanClass) return Boolean.TRUE;
-        if (hint == ScriptRuntime.NumberClass) return ScriptRuntime.NaNobj;
+        if (hint == null || hint == ScriptRuntime.StringClass) {
+            return this.toString();
+        }
+        if (hint == ScriptRuntime.BooleanClass) {
+            return Boolean.TRUE;
+        }
+        if (hint == ScriptRuntime.NumberClass) {
+            return ScriptRuntime.NaNobj;
+        }
         return this;
     }
 
@@ -125,7 +140,9 @@ public class NativeJavaClass extends NativeJavaObject implements Function {
             do {
                 if (p instanceof Wrapper) {
                     Object o = ((Wrapper) p).unwrap();
-                    if (c.isInstance(o)) return p;
+                    if (c.isInstance(o)) {
+                        return p;
+                    }
                 }
                 p = p.getPrototype();
             } while (p != null);
@@ -175,7 +192,9 @@ public class NativeJavaClass extends NativeJavaObject implements Function {
         } catch (Exception ex) {
             // fall through to error
             String m = ex.getMessage();
-            if (m != null) msg = m;
+            if (m != null) {
+                msg = m;
+            }
         }
         throw Context.reportRuntimeErrorById("msg.cant.instantiate", msg, classObject.getName());
     }
@@ -205,8 +224,8 @@ public class NativeJavaClass extends NativeJavaObject implements Function {
             // is given and it is a Java or ECMA array.
             if (args.length == argTypes.length
                     && (args[args.length - 1] == null
-                            || args[args.length - 1] instanceof NativeArray
-                            || args[args.length - 1] instanceof NativeJavaArray)) {
+                    || args[args.length - 1] instanceof NativeArray
+                    || args[args.length - 1] instanceof NativeJavaArray)) {
                 // convert the ECMA array into a native array
                 varArgs = Context.jsToJava(args[args.length - 1], argTypes[argTypes.length - 1]);
             } else {

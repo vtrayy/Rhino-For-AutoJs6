@@ -27,8 +27,10 @@ public class NativeObject extends IdScriptableObject implements Map {
 
     private static final Object OBJECT_TAG = "Object";
 
+    public static NativeObject obj;
+
     static void init(Scriptable scope, boolean sealed) {
-        NativeObject obj = new NativeObject();
+        obj = new NativeObject();
         obj.exportAsJSClass(MAX_PROTOTYPE_ID, scope, sealed);
     }
 

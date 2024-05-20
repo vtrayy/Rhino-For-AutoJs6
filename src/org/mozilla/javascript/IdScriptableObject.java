@@ -27,6 +27,7 @@ import java.io.Serializable;
 public abstract class IdScriptableObject extends ScriptableObject implements IdFunctionCall {
     private static final long serialVersionUID = -3744239272168621609L;
     private transient PrototypeValues prototypeValues;
+    private IdFunctionObject mCtor;
 
     private static final class PrototypeValues implements Serializable {
         private static final long serialVersionUID = 3038645279153854371L;
@@ -727,7 +728,11 @@ public abstract class IdScriptableObject extends ScriptableObject implements IdF
             ctor.sealObject();
         }
         ctor.exportAsScopeProperty();
-        return ctor;
+        return mCtor = ctor;
+    }
+
+    public final Object getCtorProperty(String name) {
+        return mCtor == null ? null : ScriptableObject.getProperty(mCtor, name);
     }
 
     public final boolean hasPrototypeMap() {

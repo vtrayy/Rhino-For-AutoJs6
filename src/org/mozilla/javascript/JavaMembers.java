@@ -33,6 +33,13 @@ import java.util.Map;
  */
 class JavaMembers {
 
+    private static final ArrayList<String> whitelists = new ArrayList<String>() {{
+        // @Hint by SuperMonster003 on Oct 15, 2023.
+        //  ! Android API 30 and below will throw a ClassNotFoundException
+        //  ! with library androidx.appcompat (version 1.6.0+).
+        add("AccessibilityNodeInfo$ExtraRenderingInfo");
+    }};
+
     private static final boolean STRICT_REFLECTIVE_ACCESS = true;
     // SourceVersion.latestSupported().ordinal() > 8;
 
@@ -696,11 +703,20 @@ class JavaMembers {
             // Does getter method have an empty parameter list with a return
             // value (eg. a getSomething() or isSomething())?
             if (method.argTypes.length == 0 && (!isStatic || method.isStatic())) {
-                Class<?> type = method.method().getReturnType();
-                if (type != Void.TYPE) {
-                    return method;
+                try {
+                    Class<?> type = method.method().getReturnType();
+                    if (type != Void.TYPE) {
+                        return method;
+                    }
+                    break;
+                } catch (NoClassDefFoundError e) {
+                    for (String s : whitelists) {
+                        if (e.getMessage().contains(s)) {
+                            return null;
+                        }
+                    }
+                    throw e;
                 }
-                break;
             }
         }
         return null;

@@ -47,7 +47,8 @@ public class ImporterTopLevel extends TopLevel {
 
     private static final Object IMPORTER_TAG = "Importer";
 
-    public ImporterTopLevel() {}
+    public ImporterTopLevel() {
+    }
 
     public ImporterTopLevel(Context cx) {
         this(cx, false);
@@ -213,7 +214,11 @@ public class ImporterTopLevel extends TopLevel {
         String n = s.substring(s.lastIndexOf('.') + 1);
         Object val = scope.get(n, scope);
         if (val != NOT_FOUND && val != cl) {
-            throw Context.reportRuntimeErrorById("msg.prop.defined", n);
+            try {
+                throw Context.reportRuntimeErrorById("msg.prop.defined", n);
+            } catch (EvaluatorException e) {
+                System.out.println("Exception [ " + e.getMessage() + " ] from " + ImporterTopLevel.class.getSimpleName() + " has been suppressed");
+            }
         }
         // defineProperty(n, cl, DONTENUM);
         scope.put(n, scope, cl);

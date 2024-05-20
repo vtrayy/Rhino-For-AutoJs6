@@ -1042,7 +1042,7 @@ public final class JavaAdapter implements IdFunctionCall {
             String superName,
             String methodName,
             String methodSignature,
-            Class<?>[] parms,
+            Class<?>[] params,
             Class<?> returnType) {
         cfw.startMethod("super$" + methodName, methodSignature, ClassFileWriter.ACC_PUBLIC);
 
@@ -1051,8 +1051,8 @@ public final class JavaAdapter implements IdFunctionCall {
 
         // push the rest of the parameters.
         int paramOffset = 1;
-        for (Class<?> parm : parms) {
-            paramOffset += generatePushParam(cfw, paramOffset, parm);
+        for (Class<?> param : params) {
+            paramOffset += generatePushParam(cfw, paramOffset, param);
         }
 
         // call the superclass implementation of the method.
