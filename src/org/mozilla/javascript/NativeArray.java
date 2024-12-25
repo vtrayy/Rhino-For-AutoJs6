@@ -728,7 +728,7 @@ public class NativeArray extends IdScriptableObject implements List {
     }
 
     @Override
-    protected ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
+    public ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
         if (dense != null) {
             int index = toDenseIndex(id);
             if (0 <= index && index < dense.length && dense[index] != NOT_FOUND) {
@@ -1301,7 +1301,7 @@ public class NativeArray extends IdScriptableObject implements List {
     }
 
     /** See ECMA 15.4.4.5 */
-    private static Scriptable js_sort(
+    public static Scriptable js_sort(
             final Context cx,
             final Scriptable scope,
             final Scriptable thisObj,
@@ -2737,65 +2737,67 @@ public class NativeArray extends IdScriptableObject implements List {
         return id;
     }
 
-    private static final int Id_constructor = 1,
-            Id_toString = 2,
-            Id_toLocaleString = 3,
-            Id_toSource = 4,
-            Id_join = 5,
-            Id_reverse = 6,
-            Id_sort = 7,
-            Id_push = 8,
-            Id_pop = 9,
-            Id_shift = 10,
-            Id_unshift = 11,
-            Id_splice = 12,
-            Id_concat = 13,
-            Id_slice = 14,
-            Id_indexOf = 15,
-            Id_lastIndexOf = 16,
-            Id_every = 17,
-            Id_filter = 18,
-            Id_forEach = 19,
-            Id_map = 20,
-            Id_some = 21,
-            Id_find = 22,
-            Id_findIndex = 23,
-            Id_reduce = 24,
-            Id_reduceRight = 25,
-            Id_fill = 26,
-            Id_keys = 27,
-            Id_values = 28,
-            Id_entries = 29,
-            Id_includes = 30,
-            Id_copyWithin = 31,
-            Id_at = 32,
-            Id_flat = 33,
-            Id_flatMap = 34,
-            MAX_PROTOTYPE_ID = Id_flatMap;
-    private static final int ConstructorId_join = -Id_join,
-            ConstructorId_reverse = -Id_reverse,
-            ConstructorId_sort = -Id_sort,
-            ConstructorId_push = -Id_push,
-            ConstructorId_pop = -Id_pop,
-            ConstructorId_shift = -Id_shift,
-            ConstructorId_unshift = -Id_unshift,
-            ConstructorId_splice = -Id_splice,
-            ConstructorId_concat = -Id_concat,
-            ConstructorId_slice = -Id_slice,
-            ConstructorId_indexOf = -Id_indexOf,
-            ConstructorId_lastIndexOf = -Id_lastIndexOf,
-            ConstructorId_every = -Id_every,
-            ConstructorId_filter = -Id_filter,
-            ConstructorId_forEach = -Id_forEach,
-            ConstructorId_map = -Id_map,
-            ConstructorId_some = -Id_some,
-            ConstructorId_find = -Id_find,
-            ConstructorId_findIndex = -Id_findIndex,
-            ConstructorId_reduce = -Id_reduce,
-            ConstructorId_reduceRight = -Id_reduceRight,
-            ConstructorId_isArray = -26,
-            ConstructorId_of = -27,
-            ConstructorId_from = -28;
+    private static final int Id_constructor = 1;
+    private static final int Id_toString = 2;
+    private static final int Id_toLocaleString = 3;
+    private static final int Id_toSource = 4;
+    private static final int Id_join = 5;
+    private static final int Id_reverse = 6;
+    private static final int Id_sort = 7;
+    private static final int Id_push = 8;
+    private static final int Id_pop = 9;
+    private static final int Id_shift = 10;
+    private static final int Id_unshift = 11;
+    private static final int Id_splice = 12;
+    private static final int Id_concat = 13;
+    private static final int Id_slice = 14;
+    private static final int Id_indexOf = 15;
+    private static final int Id_lastIndexOf = 16;
+    private static final int Id_every = 17;
+    private static final int Id_filter = 18;
+    private static final int Id_forEach = 19;
+    private static final int Id_map = 20;
+    private static final int Id_some = 21;
+    private static final int Id_find = 22;
+    private static final int Id_findIndex = 23;
+    private static final int Id_reduce = 24;
+    private static final int Id_reduceRight = 25;
+    private static final int Id_fill = 26;
+    private static final int Id_keys = 27;
+    private static final int Id_values = 28;
+    private static final int Id_entries = 29;
+    private static final int Id_includes = 30;
+    private static final int Id_copyWithin = 31;
+    private static final int Id_at = 32;
+    private static final int Id_flat = 33;
+    private static final int Id_flatMap = 34;
+
+    public static final int MAX_PROTOTYPE_ID = Id_flatMap;
+
+    private static final int ConstructorId_join = -Id_join;
+    private static final int ConstructorId_reverse = -Id_reverse;
+    private static final int ConstructorId_sort = -Id_sort;
+    private static final int ConstructorId_push = -Id_push;
+    private static final int ConstructorId_pop = -Id_pop;
+    private static final int ConstructorId_shift = -Id_shift;
+    private static final int ConstructorId_unshift = -Id_unshift;
+    private static final int ConstructorId_splice = -Id_splice;
+    private static final int ConstructorId_concat = -Id_concat;
+    private static final int ConstructorId_slice = -Id_slice;
+    private static final int ConstructorId_indexOf = -Id_indexOf;
+    private static final int ConstructorId_lastIndexOf = -Id_lastIndexOf;
+    private static final int ConstructorId_every = -Id_every;
+    private static final int ConstructorId_filter = -Id_filter;
+    private static final int ConstructorId_forEach = -Id_forEach;
+    private static final int ConstructorId_map = -Id_map;
+    private static final int ConstructorId_some = -Id_some;
+    private static final int ConstructorId_find = -Id_find;
+    private static final int ConstructorId_findIndex = -Id_findIndex;
+    private static final int ConstructorId_reduce = -Id_reduce;
+    private static final int ConstructorId_reduceRight = -Id_reduceRight;
+    private static final int ConstructorId_isArray = -26;
+    private static final int ConstructorId_of = -27;
+    private static final int ConstructorId_from = -28;
 
     /** Internal representation of the JavaScript array's length property. */
     private long length;

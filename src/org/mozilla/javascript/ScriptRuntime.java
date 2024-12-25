@@ -401,6 +401,11 @@ public class ScriptRuntime {
                 double d = ((Number) val).doubleValue();
                 return (!Double.isNaN(d) && d != 0.0);
             }
+
+            // @Hint by SuperMonster003 on Jun 13, 2024.
+            //  ! Returns false when calling `Scriptable#get`
+            if (val == Scriptable.NOT_FOUND) return false;
+
             if (val instanceof Scriptable) {
                 if (val instanceof ScriptableObject
                         && ((ScriptableObject) val).avoidObjectDetection()) {
@@ -2940,7 +2945,10 @@ public class ScriptRuntime {
         if (value instanceof Number) return "number";
         if (value instanceof Boolean) return "boolean";
         if (isSymbol(value)) return "symbol";
-        throw errorWithClassName("msg.invalid.type", value);
+        // @Hint by SuperMonster003 on Jun 11, 2024.
+        //  ! Never throw an Exception as `typeof` shouldn't do.
+        // throw errorWithClassName("msg.invalid.type", value);
+        return "object";
     }
 
     /** The typeof operator that correctly handles the undefined case */
@@ -3745,8 +3753,15 @@ public class ScriptRuntime {
             throw typeErrorById("msg.instanceof.not.object");
         }
 
-        // for primitive values on LHS, return false
-        if (!(a instanceof Scriptable)) return false;
+        // @Dubious by SuperMonster003 on Aug 15. 2024.
+        //  ! I'm not sure if handling it this way has potential issues.
+        //  ! zh-CN: 我不确定这样处理是否存在潜在的问题.
+        //  # if (!(a instanceof Scriptable)) return false;
+        if (!(a instanceof Scriptable)) {
+            // for primitive values on LHS, return false
+            if (isPrimitive(a)) return false;
+            a = new NativeJavaObject(getTopCallScope(cx), a, a.getClass());
+        }
 
         return ((Scriptable) b).hasInstance((Scriptable) a);
     }
@@ -4793,7 +4808,7 @@ public class ScriptRuntime {
         if (value == Scriptable.NOT_FOUND) {
             return typeErrorById("msg.function.not.found.in", propertyName, objString);
         }
-        return typeErrorById("msg.isnt.function.in", propertyName, objString, typeof(value));
+        return typeErrorById("msg.isnt.function.in", propertyName, objString, value == null ? "null" : typeof(value));
     }
 
     private static RuntimeException notXmlError(Object value) {

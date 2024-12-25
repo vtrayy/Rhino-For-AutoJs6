@@ -355,8 +355,11 @@ public class FunctionObject extends BaseFunction {
             }
 
             if (parmsLength == VARARGS_METHOD) {
-                Object[] invokeArgs = {cx, thisObj, args, this};
-                result = member.invoke(null, invokeArgs);
+                if (thisObj != null) {
+                    result = member.invoke(null, new Object[]{cx, thisObj, args, this});
+                } else {
+                    result = member.invoke(null, new Object[]{cx, this, args, this});
+                }
                 checkMethodResult = true;
             } else {
                 boolean inNewExpr = (thisObj == null);

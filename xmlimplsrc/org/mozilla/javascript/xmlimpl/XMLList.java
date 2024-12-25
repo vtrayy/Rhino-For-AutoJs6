@@ -644,7 +644,7 @@ class XMLList extends XMLObjectImpl implements Function {
     }
 
     @Override
-    String toXMLString() {
+    public String toXMLString() {
         //    See ECMA 10.2.1
         StringBuilder sb = new StringBuilder();
 

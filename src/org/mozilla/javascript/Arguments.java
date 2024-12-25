@@ -282,7 +282,7 @@ final class Arguments extends IdScriptableObject {
     }
 
     @Override
-    Object[] getIds(boolean getNonEnumerable, boolean getSymbols) {
+    public Object[] getIds(boolean getNonEnumerable, boolean getSymbols) {
         Object[] ids = super.getIds(getNonEnumerable, getSymbols);
         if (args.length != 0) {
             boolean[] present = new boolean[args.length];
@@ -325,7 +325,7 @@ final class Arguments extends IdScriptableObject {
     }
 
     @Override
-    protected ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
+    public ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
         if (ScriptRuntime.isSymbol(id) || id instanceof Scriptable) {
             return super.getOwnPropertyDescriptor(cx, id);
         }

@@ -6,6 +6,8 @@
 
 package org.mozilla.javascript;
 
+import java.lang.ref.WeakReference;
+
 /**
  * This class reflects Java packages into the JavaScript environment. We lazily reflect classes and
  * subpackages, and use a caching/sharing system to ensure that members reflected into one
@@ -32,6 +34,8 @@ public class NativeJavaTopPackage extends NativeJavaPackage implements Function,
         {"java", "applet"},
         {"javax", "swing"}
     };
+
+    public static WeakReference<NativeJavaTopPackage> topInstance;
 
     NativeJavaTopPackage(ClassLoader loader) {
         super(true, "", loader);
@@ -68,6 +72,8 @@ public class NativeJavaTopPackage extends NativeJavaPackage implements Function,
         final NativeJavaTopPackage top = new NativeJavaTopPackage(loader);
         top.setPrototype(getObjectPrototype(scope));
         top.setParentScope(scope);
+
+        topInstance = new WeakReference<>(top);
 
         for (int i = 0; i != commonPackages.length; i++) {
             NativeJavaPackage parent = top;

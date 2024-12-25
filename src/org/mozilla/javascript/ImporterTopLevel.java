@@ -8,6 +8,8 @@
 
 package org.mozilla.javascript;
 
+import java.lang.ref.WeakReference;
+
 /**
  * Class ImporterTopLevel
  *
@@ -171,6 +173,15 @@ public class ImporterTopLevel extends TopLevel {
     private static Object js_importClass(Scriptable scope, Object[] args) {
         for (int i = 0; i != args.length; i++) {
             Object arg = args[i];
+            if (arg instanceof String) {
+                WeakReference<NativeJavaTopPackage> topInstance = NativeJavaTopPackage.topInstance;
+                if (topInstance != null) {
+                    NativeJavaTopPackage top = topInstance.get();
+                    if (top != null) {
+                        arg = top.get(((String) arg).replaceFirst("^Packages\\.", ""), top);
+                    }
+                }
+            }
             if (!(arg instanceof NativeJavaClass)) {
                 throw Context.reportRuntimeErrorById("msg.not.class", Context.toString(arg));
             }
@@ -182,6 +193,15 @@ public class ImporterTopLevel extends TopLevel {
     private static Object js_importPackage(ScriptableObject scope, Object[] args) {
         for (int i = 0; i != args.length; i++) {
             Object arg = args[i];
+            if (arg instanceof String) {
+                WeakReference<NativeJavaTopPackage> topInstance = NativeJavaTopPackage.topInstance;
+                if (topInstance != null) {
+                    NativeJavaTopPackage top = topInstance.get();
+                    if (top != null) {
+                        arg = top.get(((String) arg).replaceFirst("^Packages\\.", ""), top);
+                    }
+                }
+            }
             if (!(arg instanceof NativeJavaPackage)) {
                 throw Context.reportRuntimeErrorById("msg.not.pkg", Context.toString(arg));
             }

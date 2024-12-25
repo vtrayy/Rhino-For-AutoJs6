@@ -1742,11 +1742,11 @@ public abstract class ScriptableObject
         }
     }
 
-    protected static boolean isTrue(Object value) {
+    public static boolean isTrue(Object value) {
         return (value != NOT_FOUND) && ScriptRuntime.toBoolean(value);
     }
 
-    protected static boolean isFalse(Object value) {
+    public static boolean isFalse(Object value) {
         return !isTrue(value);
     }
 
@@ -1757,7 +1757,7 @@ public abstract class ScriptableObject
      * @param currentValue the current value
      * @return true if values are the same as defined by ES5 9.12
      */
-    protected boolean sameValue(Object newValue, Object currentValue) {
+    public boolean sameValue(Object newValue, Object currentValue) {
         if (newValue == NOT_FOUND) {
             return true;
         }
@@ -1837,20 +1837,20 @@ public abstract class ScriptableObject
         return !isDataDescriptor(desc) && !isAccessorDescriptor(desc);
     }
 
-    protected static Scriptable ensureScriptable(Object arg) {
+    public static Scriptable ensureScriptable(Object arg) {
         if (!(arg instanceof Scriptable))
             throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(arg));
         return (Scriptable) arg;
     }
 
-    protected static SymbolScriptable ensureSymbolScriptable(Object arg) {
+    public static SymbolScriptable ensureSymbolScriptable(Object arg) {
         if (!(arg instanceof SymbolScriptable))
             throw ScriptRuntime.typeErrorById(
                     "msg.object.not.symbolscriptable", ScriptRuntime.typeof(arg));
         return (SymbolScriptable) arg;
     }
 
-    protected static ScriptableObject ensureScriptableObject(Object arg) {
+    public static ScriptableObject ensureScriptableObject(Object arg) {
         if (arg instanceof ScriptableObject) {
             return (ScriptableObject) arg;
         }
@@ -2584,7 +2584,7 @@ public abstract class ScriptableObject
         return slot;
     }
 
-    Object[] getIds(boolean getNonEnumerable, boolean getSymbols) {
+    public Object[] getIds(boolean getNonEnumerable, boolean getSymbols) {
         Object[] a;
         int externalLen = (externalData == null ? 0 : externalData.getArrayLength());
 
@@ -2667,7 +2667,7 @@ public abstract class ScriptableObject
         }
     }
 
-    protected ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
+    public ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
         Slot slot = querySlot(cx, id);
         if (slot == null) return null;
         return slot.getPropertyDescriptor(cx, this);

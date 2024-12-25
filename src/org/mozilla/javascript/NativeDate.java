@@ -17,7 +17,7 @@ import java.util.Date;
  *     <p>Significant parts of this code are adapted from the venerable jsdate.cpp (also Mozilla):
  *     https://dxr.mozilla.org/mozilla-central/source/js/src/jsdate.cpp
  */
-final class NativeDate extends IdScriptableObject {
+public final class NativeDate extends IdScriptableObject {
     private static final long serialVersionUID = -8307438915861678966L;
 
     private static final Object DATE_TAG = "Date";
@@ -1084,7 +1084,7 @@ final class NativeDate extends IdScriptableObject {
         return ScriptRuntime.NaN;
     }
 
-    private static double date_parseString(Context cx, String s) {
+    public static double date_parseString(Context cx, String s) {
         double d = parseISOString(cx, s);
         if (!Double.isNaN(d)) {
             return d;
@@ -1923,5 +1923,5 @@ final class NativeDate extends IdScriptableObject {
     private static final DateFormat localeDateFormatter = new SimpleDateFormat("MMMM d, yyyy");
     private static final DateFormat localeTimeFormatter = new SimpleDateFormat("h:mm:ss a z");
 
-    private double date;
+    public double date;
 }

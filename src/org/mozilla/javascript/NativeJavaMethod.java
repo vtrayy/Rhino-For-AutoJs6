@@ -36,7 +36,7 @@ public class NativeJavaMethod extends BaseFunction {
 
     NativeJavaMethod(MemberBox method, String name) {
         this.functionName = name;
-        this.methods = new MemberBox[] {method};
+        this.methods = new MemberBox[]{method};
     }
 
     public NativeJavaMethod(Method method, String name) {
@@ -103,7 +103,7 @@ public class NativeJavaMethod extends BaseFunction {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0, N = methods.length; i != N; ++i) {
+        for (int i = 0, len = methods.length; i != len; ++i) {
             // Check member type, we also use this for overloaded constructors
             if (methods[i].isMethod()) {
                 Method method = methods[i].method();
@@ -149,8 +149,8 @@ public class NativeJavaMethod extends BaseFunction {
             // is given and it is a Java or ECMA array or is null.
             if (args.length == argTypes.length
                     && (args[args.length - 1] == null
-                            || args[args.length - 1] instanceof NativeArray
-                            || args[args.length - 1] instanceof NativeJavaArray)) {
+                    || args[args.length - 1] instanceof NativeArray
+                    || args[args.length - 1] instanceof NativeJavaArray)) {
                 // convert the ECMA array into a native array
                 varArgs = Context.jsToJava(args[args.length - 1], argTypes[argTypes.length - 1]);
             } else {
@@ -192,7 +192,8 @@ public class NativeJavaMethod extends BaseFunction {
                     throw Context.reportRuntimeErrorById(
                             "msg.nonjava.method",
                             getFunctionName(),
-                            ScriptRuntime.toString(thisObj),
+                            thisObj,
+                            // ScriptRuntime.toString(thisObj),
                             c.getName());
                 }
                 if (o instanceof Wrapper) {
@@ -364,7 +365,7 @@ public class NativeJavaMethod extends BaseFunction {
                             // We want to call the derived class's method.
                             if (bestFit.isStatic()
                                     && bestFit.getDeclaringClass()
-                                            .isAssignableFrom(member.getDeclaringClass())) {
+                                    .isAssignableFrom(member.getDeclaringClass())) {
                                 // On some JVMs, Class.getMethods will return all
                                 // static methods of the class hierarchy, even if
                                 // a derived class's parameters match exactly.

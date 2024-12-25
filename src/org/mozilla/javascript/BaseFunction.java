@@ -516,7 +516,7 @@ public class BaseFunction extends IdScriptableObject implements Function {
         return result;
     }
 
-    protected void setPrototypeProperty(Object prototype) {
+    public void setPrototypeProperty(Object prototype) {
         this.prototypeProperty = prototype;
     }
 
@@ -647,7 +647,7 @@ public class BaseFunction extends IdScriptableObject implements Function {
         return id;
     }
 
-    private static final int Id_constructor = 1,
+    public static final int Id_constructor = 1,
             Id_toString = 2,
             Id_toSource = 3,
             Id_apply = 4,

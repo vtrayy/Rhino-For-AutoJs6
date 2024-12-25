@@ -853,7 +853,7 @@ final class NativeString extends IdScriptableObject {
     }
 
     @Override
-    protected Object[] getIds(boolean nonEnumerable, boolean getSymbols) {
+    public Object[] getIds(boolean nonEnumerable, boolean getSymbols) {
         // In ES6, Strings have entries in the property map for each character.
         Context cx = Context.getCurrentContext();
         if ((cx != null) && (cx.getLanguageVersion() >= Context.VERSION_ES6)) {
@@ -870,7 +870,7 @@ final class NativeString extends IdScriptableObject {
     }
 
     @Override
-    protected ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
+    public ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
         if (!(id instanceof Symbol)
                 && (cx != null)
                 && (cx.getLanguageVersion() >= Context.VERSION_ES6)) {

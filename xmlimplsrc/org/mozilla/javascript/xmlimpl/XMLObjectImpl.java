@@ -192,7 +192,7 @@ abstract class XMLObjectImpl extends XMLObject {
 
     abstract String toSource(int indent);
 
-    abstract String toXMLString();
+    public abstract String toXMLString();
 
     abstract Object valueOf();
 

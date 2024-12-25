@@ -20,10 +20,10 @@ package org.mozilla.javascript;
  *
  * <p>
  *
- * @see org.mozilla.javascript.ScriptableObject
  * @author Norris Boyd
  * @author Nick Thompson
  * @author Brendan Eich
+ * @see org.mozilla.javascript.ScriptableObject
  */
 public interface Scriptable {
 
@@ -35,7 +35,9 @@ public interface Scriptable {
      */
     public String getClassName();
 
-    /** Value returned from <code>get</code> if the property is not found. */
+    /**
+     * Value returned from <code>get</code> if the property is not found.
+     */
     public static final Object NOT_FOUND = UniqueTag.NOT_FOUND;
 
     /**
@@ -72,12 +74,19 @@ public interface Scriptable {
      *   <LI>NOT_FOUND
      * </UL>
      *
-     * @param name the name of the property
+     * @param name  the name of the property
      * @param start the object in which the lookup began
      * @return the value of the property (may be null), or NOT_FOUND
      * @see org.mozilla.javascript.Context#getUndefinedValue
      */
     public Object get(String name, Scriptable start);
+
+    /**
+     * Get a named property from current object.
+     */
+    public default Object get(String name) {
+        return get(name, this);
+    }
 
     /**
      * Get a property from the object selected by an integral index.
@@ -88,7 +97,7 @@ public interface Scriptable {
      * @param index the numeric index for the property
      * @param start the object in which the lookup began
      * @return the value of the property (may be null), or NOT_FOUND
-     * @see org.mozilla.javascript.Scriptable#get(String,Scriptable)
+     * @see org.mozilla.javascript.Scriptable#get(String, Scriptable)
      */
     public Object get(int index, Scriptable start);
 
@@ -101,13 +110,20 @@ public interface Scriptable {
      *
      * <p>
      *
-     * @param name the name of the property
+     * @param name  the name of the property
      * @param start the object in which the lookup began
      * @return true if and only if the named property is found in the object
      * @see org.mozilla.javascript.Scriptable#get(String, Scriptable)
      * @see org.mozilla.javascript.ScriptableObject#getProperty(Scriptable, String)
      */
     public boolean has(String name, Scriptable start);
+
+    /**
+     * Indicates whether or not a named property is defined in current object.
+     */
+    public default boolean has(String name) {
+        return has(name, this);
+    }
 
     /**
      * Indicates whether or not an indexed property is defined in an object.
@@ -149,12 +165,12 @@ public interface Scriptable {
      * <p>The values that may be set are limited to the following:
      *
      * <UL>
-     *   <LI>java.lang.Boolean objects
-     *   <LI>java.lang.String objects
-     *   <LI>java.lang.Number objects
-     *   <LI>org.mozilla.javascript.Scriptable objects
-     *   <LI>null
-     *   <LI>The value returned by Context.getUndefinedValue()
+     * <LI>java.lang.Boolean objects
+     * <LI>java.lang.String objects
+     * <LI>java.lang.Number objects
+     * <LI>org.mozilla.javascript.Scriptable objects
+     * <LI>null
+     * <LI>The value returned by Context.getUndefinedValue()
      * </UL>
      *
      * <p>Arbitrary Java objects may be wrapped in a Scriptable by first calling <code>
@@ -165,7 +181,7 @@ public interface Scriptable {
      * called to determine in which object the property is defined. Note that this method is not
      * expected to traverse the prototype chain, which is different from the ECMA [[Put]] operation.
      *
-     * @param name the name of the property
+     * @param name  the name of the property
      * @param start the object whose property is being set
      * @param value value to set the property to
      * @see org.mozilla.javascript.Scriptable#has(String, Scriptable)
@@ -263,7 +279,7 @@ public interface Scriptable {
      * considered non-enumerable.
      *
      * @return an array of Objects. Each entry in the array is either a java.lang.String or a
-     *     java.lang.Number
+     * java.lang.Number
      */
     public Object[] getIds();
 

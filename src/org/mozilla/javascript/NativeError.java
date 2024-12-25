@@ -8,18 +8,22 @@ package org.mozilla.javascript;
 
 import java.io.Serializable;
 
+import static org.mozilla.javascript.RhinoException.SHOULD_OVERRIDE_PRINT_STARTED;
+
 /**
  * The class of error objects
  *
  * <p>ECMA 15.11
  */
-final class NativeError extends IdScriptableObject {
+public final class NativeError extends IdScriptableObject {
     private static final long serialVersionUID = -5338413581437645187L;
 
-    private static final Object ERROR_TAG = "Error";
-    private static final String STACK_TAG = "stack";
+    public static final String ERROR_TAG = "Error";
+    public static final String STACK_TAG = "stack";
 
-    /** Default stack limit is set to "Infinity", here represented as a negative int */
+    /**
+     * Default stack limit is set to "Infinity", here represented as a negative int
+     */
     public static final int DEFAULT_STACK_LIMIT = -1;
 
     // This is used by "captureStackTrace"
@@ -219,7 +223,7 @@ final class NativeError extends IdScriptableObject {
         }
 
         Scriptable eltArray = cx.newArray(this, elts);
-        return prepare.call(cx, prepare, this, new Object[] {this, eltArray});
+        return prepare.call(cx, prepare, this, new Object[]{this, eltArray});
     }
 
     private static Object js_toString(Scriptable thisObj) {
@@ -284,8 +288,13 @@ final class NativeError extends IdScriptableObject {
         return sb.toString();
     }
 
-    private static void js_captureStackTrace(
-            Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
+    public static void js_captureStackTrace(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
+        js_captureStackTrace(cx, scope, thisObj, args, false);
+    }
+
+    public static void js_captureStackTrace(
+            Context cx, Scriptable scope, Scriptable thisObj, Object[] args, Boolean shouldOverridePrintStarted
+    ) {
         ScriptableObject obj = (ScriptableObject) ScriptRuntime.toObject(cx, scope, args[0]);
         Function func = null;
         if (args.length > 1) {
@@ -298,7 +307,9 @@ final class NativeError extends IdScriptableObject {
         err.setStackProvider(new EvaluatorException("[object Object]"));
 
         // Figure out if they passed a function used to hide part of the stack
-        if (func != null) {
+        if (shouldOverridePrintStarted) {
+            err.associateValue(STACK_HIDE_KEY, SHOULD_OVERRIDE_PRINT_STARTED);
+        } else if (func != null) {
             Object funcName = func.get("name", func);
             if ((funcName != null) && !Undefined.isUndefined(funcName)) {
                 err.associateValue(STACK_HIDE_KEY, Context.toString(funcName));

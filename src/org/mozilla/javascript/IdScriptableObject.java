@@ -590,7 +590,7 @@ public abstract class IdScriptableObject extends ScriptableObject implements IdF
     }
 
     @Override
-    Object[] getIds(boolean getNonEnumerable, boolean getSymbols) {
+    public Object[] getIds(boolean getNonEnumerable, boolean getSymbols) {
         Object[] result = super.getIds(getNonEnumerable, getSymbols);
 
         if (prototypeValues != null) {
@@ -919,7 +919,7 @@ public abstract class IdScriptableObject extends ScriptableObject implements IdF
     }
 
     @Override
-    protected ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
+    public ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
         ScriptableObject desc = super.getOwnPropertyDescriptor(cx, id);
         if (desc == null) {
             if (id instanceof String) {

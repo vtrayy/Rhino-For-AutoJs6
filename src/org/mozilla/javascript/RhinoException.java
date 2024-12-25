@@ -12,12 +12,16 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** The class of exceptions thrown by the JavaScript engine. */
 public abstract class RhinoException extends RuntimeException {
+
     private static final Pattern JAVA_STACK_PATTERN = Pattern.compile("_c_(.*)_\\d+");
+
+    public static final String SHOULD_OVERRIDE_PRINT_STARTED = "should_override_print_started";
 
     RhinoException() {
         Evaluator e = Context.createInterpreter();
@@ -297,7 +301,10 @@ public abstract class RhinoException extends RuntimeException {
                     && interpreterStack.length > interpreterStackIndex) {
 
                 for (ScriptStackElement elem : interpreterStack[interpreterStackIndex++]) {
-                    if (!printStarted && hideFunction.equals(elem.functionName)) {
+                    if (Objects.equals(hideFunction, SHOULD_OVERRIDE_PRINT_STARTED)) {
+                        printStarted = true;
+                    }
+                    if (!printStarted && (hideFunction.equals(elem.functionName))) {
                         printStarted = true;
                     } else if (printStarted && ((limit < 0) || (count < limit))) {
                         list.add(elem);

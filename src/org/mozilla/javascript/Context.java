@@ -2547,7 +2547,7 @@ public class Context implements Closeable {
         return (Evaluator) Kit.newInstanceOrNull(interpreterClass);
     }
 
-    static String getSourcePositionFromStack(int[] linep) {
+    public static String getSourcePositionFromStack(int[] linep) {
         Context cx = getCurrentContext();
         if (cx == null) return null;
         if (cx.lastInterpreterFrame != null) {

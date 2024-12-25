@@ -12,7 +12,7 @@ import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.Undefined;
 import org.mozilla.javascript.xml.XMLObject;
 
-class XML extends XMLObjectImpl {
+public class XML extends XMLObjectImpl {
     static final long serialVersionUID = -630969919086449092L;
 
     private XmlNode node;
@@ -716,7 +716,7 @@ class XML extends XMLObjectImpl {
     }
 
     @Override
-    String toXMLString() {
+    public String toXMLString() {
         return this.node.ecmaToXMLString(getProcessor());
     }
 
