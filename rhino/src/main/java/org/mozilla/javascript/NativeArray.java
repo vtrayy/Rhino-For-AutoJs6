@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+
 import org.mozilla.javascript.ArrayLikeAbstractOperations.IterativeOperation;
 import org.mozilla.javascript.ArrayLikeAbstractOperations.ReduceOperation;
 import org.mozilla.javascript.xml.XMLObject;
@@ -47,22 +48,22 @@ public class NativeArray extends IdScriptableObject implements List {
     private static final Object ARRAY_TAG = "Array";
     private static final Long NEGATIVE_ONE = Long.valueOf(-1);
     private static final String[] UNSCOPABLES = {
-        "at",
-        "copyWithin",
-        "entries",
-        "fill",
-        "find",
-        "findIndex",
-        "findLast",
-        "findLastIndex",
-        "flat",
-        "flatMap",
-        "includes",
-        "keys",
-        "toReversed",
-        "toSorted",
-        "toSpliced",
-        "values"
+            "at",
+            "copyWithin",
+            "entries",
+            "fill",
+            "find",
+            "findIndex",
+            "findLast",
+            "findLastIndex",
+            "flat",
+            "flatMap",
+            "includes",
+            "keys",
+            "toReversed",
+            "toSorted",
+            "toSpliced",
+            "values"
     };
 
     static void init(Context cx, Scriptable scope, boolean sealed) {
@@ -389,45 +390,41 @@ public class NativeArray extends IdScriptableObject implements List {
                 case ConstructorId_findLast:
                 case ConstructorId_findLastIndex:
                 case ConstructorId_reduce:
-                case ConstructorId_reduceRight:
-                    {
-                        // this is a small trick; we will handle all the ConstructorId_xxx calls
-                        // the same way the object calls are processed
-                        // so we adjust the args, inverting the id and
-                        // restarting the method selection
-                        // Attention: the implementations have to be aware of this
-                        if (args.length > 0) {
-                            thisObj = ScriptRuntime.toObject(cx, scope, args[0]);
-                            Object[] newArgs = new Object[args.length - 1];
-                            System.arraycopy(args, 1, newArgs, 0, newArgs.length);
-                            args = newArgs;
-                        }
-                        id = -id;
-                        continue again;
+                case ConstructorId_reduceRight: {
+                    // this is a small trick; we will handle all the ConstructorId_xxx calls
+                    // the same way the object calls are processed
+                    // so we adjust the args, inverting the id and
+                    // restarting the method selection
+                    // Attention: the implementations have to be aware of this
+                    if (args.length > 0) {
+                        thisObj = ScriptRuntime.toObject(cx, scope, args[0]);
+                        Object[] newArgs = new Object[args.length - 1];
+                        System.arraycopy(args, 1, newArgs, 0, newArgs.length);
+                        args = newArgs;
                     }
+                    id = -id;
+                    continue again;
+                }
 
                 case ConstructorId_isArray:
                     return Boolean.valueOf(args.length > 0 && js_isArray(args[0]));
 
-                case ConstructorId_of:
-                    {
-                        return js_of(cx, scope, thisObj, args);
-                    }
+                case ConstructorId_of: {
+                    return js_of(cx, scope, thisObj, args);
+                }
 
-                case ConstructorId_from:
-                    {
-                        return js_from(cx, scope, thisObj, args);
-                    }
+                case ConstructorId_from: {
+                    return js_from(cx, scope, thisObj, args);
+                }
 
-                case Id_constructor:
-                    {
-                        boolean inNewExpr = (thisObj == null);
-                        if (!inNewExpr) {
-                            // IdFunctionObject.construct will set up parent, proto
-                            return f.construct(cx, scope, args);
-                        }
-                        return jsConstructor(cx, scope, args);
+                case Id_constructor: {
+                    boolean inNewExpr = (thisObj == null);
+                    if (!inNewExpr) {
+                        // IdFunctionObject.construct will set up parent, proto
+                        return f.construct(cx, scope, args);
                     }
+                    return jsConstructor(cx, scope, args);
+                }
 
                 case Id_toString:
                     return toStringHelper(
@@ -880,7 +877,9 @@ public class NativeArray extends IdScriptableObject implements List {
         return true;
     }
 
-    /** See ECMA 15.4.1,2 */
+    /**
+     * See ECMA 15.4.1,2
+     */
     private static Object jsConstructor(Context cx, Scriptable scope, Object[] args) {
         if (args.length == 0) return new NativeArray(0);
 
@@ -910,7 +909,7 @@ public class NativeArray extends IdScriptableObject implements List {
             try {
                 final Object[] args =
                         (lengthAlways || (length > 0))
-                                ? new Object[] {Long.valueOf(length)}
+                                ? new Object[]{Long.valueOf(length)}
                                 : ScriptRuntime.emptyArgs;
                 result = ((Constructable) arg).construct(cx, scope, args);
             } catch (EcmaError ee) {
@@ -965,7 +964,7 @@ public class NativeArray extends IdScriptableObject implements List {
                                             cx,
                                             scope,
                                             thisArg,
-                                            new Object[] {temp, Long.valueOf(k)});
+                                            new Object[]{temp, Long.valueOf(k)});
                         }
                         ArrayLikeAbstractOperations.defineElem(cx, result, k, temp);
                         k++;
@@ -981,7 +980,7 @@ public class NativeArray extends IdScriptableObject implements List {
         for (long k = 0; k < length; k++) {
             Object temp = getElem(cx, items, k);
             if (mapping) {
-                temp = mapFn.call(cx, scope, thisArg, new Object[] {temp, Long.valueOf(k)});
+                temp = mapFn.call(cx, scope, thisArg, new Object[]{temp, Long.valueOf(k)});
             }
             ArrayLikeAbstractOperations.defineElem(cx, result, k, temp);
         }
@@ -1028,8 +1027,8 @@ public class NativeArray extends IdScriptableObject implements List {
      *
      * @param denseOnly new value for denseOnly flag
      * @throws IllegalArgumentException if an attempt is made to enable denseOnly after it was
-     *     disabled; NativeArray code is not written to handle switching back to a dense
-     *     representation
+     *                                  disabled; NativeArray code is not written to handle switching back to a dense
+     *                                  representation
      */
     void setDenseOnly(boolean denseOnly) {
         if (denseOnly && !this.denseOnly) throw new IllegalArgumentException();
@@ -1235,7 +1234,7 @@ public class NativeArray extends IdScriptableObject implements List {
                     Object elem = getRawElem(o, i);
                     if (elem == NOT_FOUND
                             || (skipUndefinedAndNull
-                                    && (elem == null || elem == Undefined.instance))) {
+                            && (elem == null || elem == Undefined.instance))) {
                         haslast = false;
                         continue;
                     }
@@ -1279,7 +1278,9 @@ public class NativeArray extends IdScriptableObject implements List {
         return result.toString();
     }
 
-    /** See ECMA 15.4.4.3 */
+    /**
+     * See ECMA 15.4.4.3
+     */
     private static String js_join(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
         Scriptable o = ScriptRuntime.toObject(cx, scope, thisObj);
 
@@ -1342,7 +1343,9 @@ public class NativeArray extends IdScriptableObject implements List {
         return sb.toString();
     }
 
-    /** See ECMA 15.4.4.4 */
+    /**
+     * See ECMA 15.4.4.4
+     */
     private static Scriptable js_reverse(
             Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
         Scriptable o = ScriptRuntime.toObject(cx, scope, thisObj);
@@ -1371,7 +1374,9 @@ public class NativeArray extends IdScriptableObject implements List {
         return o;
     }
 
-    /** See ECMA 15.4.4.5 */
+    /**
+     * See ECMA 15.4.4.5
+     */
     public static Scriptable js_sort(
             final Context cx,
             final Scriptable scope,
@@ -2180,7 +2185,7 @@ public class NativeArray extends IdScriptableObject implements List {
             if (elem == Scriptable.NOT_FOUND) {
                 continue;
             }
-            Object[] innerArgs = new Object[] {elem, Long.valueOf(i), o};
+            Object[] innerArgs = new Object[]{elem, Long.valueOf(i), o};
             Object mapCall = f.call(cx, parent, thisArg, innerArgs);
             if (js_isArray(mapCall)) {
                 Scriptable arr = (Scriptable) mapCall;
@@ -2356,8 +2361,8 @@ public class NativeArray extends IdScriptableObject implements List {
                 a.length >= len
                         ? a
                         : (Object[])
-                                java.lang.reflect.Array.newInstance(
-                                        a.getClass().getComponentType(), len);
+                        java.lang.reflect.Array.newInstance(
+                                a.getClass().getComponentType(), len);
         for (int i = 0; i < len; i++) {
             array[i] = get(i);
         }
@@ -2785,8 +2790,10 @@ public class NativeArray extends IdScriptableObject implements List {
             Id_toSorted = 38,
             Id_toSpliced = 39,
             Id_with = 40,
-            SymbolId_unscopables = 41,
-            MAX_PROTOTYPE_ID = SymbolId_unscopables;
+            SymbolId_unscopables = 41;
+
+    public static final int MAX_PROTOTYPE_ID = SymbolId_unscopables;
+
     private static final int ConstructorId_join = -Id_join,
             ConstructorId_reverse = -Id_reverse,
             ConstructorId_sort = -Id_sort,
@@ -2814,13 +2821,19 @@ public class NativeArray extends IdScriptableObject implements List {
             ConstructorId_of = -29,
             ConstructorId_from = -30;
 
-    /** Internal representation of the JavaScript array's length property. */
+    /**
+     * Internal representation of the JavaScript array's length property.
+     */
     private long length;
 
-    /** Attributes of the array's length property */
+    /**
+     * Attributes of the array's length property
+     */
     private int lengthAttr = DONTENUM | PERMANENT;
 
-    /** modCount required for subList/iterators */
+    /**
+     * modCount required for subList/iterators
+     */
     private transient int modCount;
 
     /**
@@ -2829,16 +2842,24 @@ public class NativeArray extends IdScriptableObject implements List {
      */
     private Object[] dense;
 
-    /** True if all numeric properties are stored in <code>dense</code>. */
+    /**
+     * True if all numeric properties are stored in <code>dense</code>.
+     */
     private boolean denseOnly;
 
-    /** The maximum size of <code>dense</code> that will be allocated initially. */
+    /**
+     * The maximum size of <code>dense</code> that will be allocated initially.
+     */
     private static int maximumInitialCapacity = 10000;
 
-    /** The default capacity for <code>dense</code>. */
+    /**
+     * The default capacity for <code>dense</code>.
+     */
     private static final int DEFAULT_INITIAL_CAPACITY = 10;
 
-    /** The factor to grow <code>dense</code> by. */
+    /**
+     * The factor to grow <code>dense</code> by.
+     */
     private static final double GROW_FACTOR = 1.5;
 
     private static final int MAX_PRE_GROW_SIZE = (int) (Integer.MAX_VALUE / GROW_FACTOR);

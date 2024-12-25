@@ -738,10 +738,10 @@ public class Dim {
         String resultString;
         Debugger saved_debugger = cx.getDebugger();
         Object saved_data = cx.getDebuggerContextData();
-        boolean wasInterpreted = cx.isInterpretedMode();
+        int saved_level = cx.getOptimizationLevel();
 
         cx.setDebugger(null, null);
-        cx.setInterpretedMode(false);
+        cx.setOptimizationLevel(-1);
         cx.setGeneratingDebug(false);
         try {
             Callable script = (Callable) cx.compileString(expr, "", 0, null);
@@ -755,7 +755,7 @@ public class Dim {
             resultString = exc.getMessage();
         } finally {
             cx.setGeneratingDebug(true);
-            cx.setInterpretedMode(wasInterpreted);
+            cx.setOptimizationLevel(saved_level);
             cx.setDebugger(saved_debugger, saved_data);
         }
         if (resultString == null) {
@@ -874,7 +874,7 @@ public class Dim {
             Debugger debugger = new DimIProxy(dim, IPROXY_DEBUG);
             cx.setDebugger(debugger, contextData);
             cx.setGeneratingDebug(true);
-            cx.setInterpretedMode(true);
+            cx.setOptimizationLevel(-1);
         }
 
         /** Called when a Context is destroyed. */

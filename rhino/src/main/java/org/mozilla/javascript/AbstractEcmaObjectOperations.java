@@ -46,7 +46,7 @@ public class AbstractEcmaObjectOperations {
      * @return boolean
      * @see <a href="https://262.ecma-international.org/12.0/#sec-hasownproperty"></a>
      */
-    static boolean hasOwnProperty(Context cx, Object o, Object property) {
+    public static boolean hasOwnProperty(Context cx, Object o, Object property) {
         Scriptable obj = ScriptableObject.ensureScriptable(o);
         boolean result;
         if (property instanceof Symbol) {
@@ -216,7 +216,7 @@ public class AbstractEcmaObjectOperations {
      *
      * <p>https://262.ecma-international.org/12.0/#sec-set-o-p-v-throw
      */
-    static void put(Context cx, Scriptable o, String p, Object v, boolean isThrow) {
+    public static void put(Context cx, Scriptable o, String p, Object v, boolean isThrow) {
         Scriptable base = ScriptableObject.getBase(o, p);
         if (base == null) base = o;
 
@@ -234,7 +234,7 @@ public class AbstractEcmaObjectOperations {
      *
      * <p>https://262.ecma-international.org/12.0/#sec-set-o-p-v-throw
      */
-    static void put(Context cx, Scriptable o, int p, Object v, boolean isThrow) {
+    public static void put(Context cx, Scriptable o, int p, Object v, boolean isThrow) {
         Scriptable base = ScriptableObject.getBase(o, p);
         if (base == null) base = o;
 
