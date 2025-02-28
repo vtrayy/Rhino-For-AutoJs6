@@ -46,7 +46,7 @@ public final class NativeError extends IdScriptableObject {
         NativeCallSite.init(obj, sealed);
     }
 
-    static NativeError makeProto(Scriptable scope, IdFunctionObject ctorObj) {
+    static NativeError makeProto(Scriptable scope, Function ctorObj) {
         Scriptable proto = (Scriptable) ctorObj.get("prototype", ctorObj);
 
         NativeError obj = new NativeError();
@@ -55,7 +55,7 @@ public final class NativeError extends IdScriptableObject {
         return obj;
     }
 
-    static NativeError make(Context cx, Scriptable scope, IdFunctionObject ctorObj, Object[] args) {
+    static NativeError make(Context cx, Scriptable scope, Function ctorObj, Object[] args) {
         NativeError obj = makeProto(scope, ctorObj);
 
         int arglen = args.length;
@@ -83,7 +83,7 @@ public final class NativeError extends IdScriptableObject {
     }
 
     static NativeError makeAggregate(
-            Context cx, Scriptable scope, IdFunctionObject ctorObj, Object[] args) {
+            Context cx, Scriptable scope, Function ctorObj, Object[] args) {
         NativeError obj = makeProto(scope, ctorObj);
 
         int arglen = args.length;

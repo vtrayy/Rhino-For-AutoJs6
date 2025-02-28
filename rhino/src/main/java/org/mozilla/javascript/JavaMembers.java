@@ -111,7 +111,7 @@ class JavaMembers {
             if (member instanceof BeanProperty) {
                 BeanProperty bp = (BeanProperty) member;
                 if (bp.getter == null) return Scriptable.NOT_FOUND;
-                rval = bp.getter.invoke(javaObject, Context.emptyArgs);
+                rval = bp.getter.invoke(javaObject, ScriptRuntime.emptyArgs);
                 type = bp.getter.method().getReturnType();
             } else {
                 Field field = (Field) member;
@@ -746,28 +746,23 @@ class JavaMembers {
         //       instance of the target arg to determine that.
         //
 
-        // Make two passes: one to find a method with direct type assignment,
-        // and one to find a widening conversion.
-        for (int pass = 1; pass <= 2; ++pass) {
-            for (MemberBox method : methods) {
-                if (!isStatic || method.isStatic()) {
-                    Class<?>[] params = method.argTypes;
-                    if (params.length == 1) {
-                        if (pass == 1) {
-                            if (params[0] == type) {
-                                return method;
-                            }
-                        } else {
-                            if (pass != 2) Kit.codeBug();
-                            if (params[0].isAssignableFrom(type)) {
-                                return method;
-                            }
-                        }
+        MemberBox acceptableMatch = null;
+        for (MemberBox method : methods) {
+            if (!isStatic || method.isStatic()) {
+                Class<?>[] params = method.argTypes;
+                if (params.length == 1) {
+                    if (params[0] == type) {
+                        // perfect match, no need to continue scanning
+                        return method;
+                    }
+                    if (acceptableMatch == null && params[0].isAssignableFrom(type)) {
+                        // do not return at this point, there can still be perfect match
+                        acceptableMatch = method;
                     }
                 }
             }
         }
-        return null;
+        return acceptableMatch;
     }
 
     private static MemberBox extractSetMethod(MemberBox[] methods, boolean isStatic) {

@@ -39,7 +39,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
     private Scriptable handlerObj;
     private final String typeOf;
 
-    private static final class Revoker implements Callable {
+    private static final class Revoker implements SerializableCallable {
         private NativeProxy revocableProxy = null;
 
         public Revoker(NativeProxy proxy) {
@@ -57,7 +57,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
         }
     }
 
-    public static void init(Context cx, Scriptable scope, boolean sealed) {
+    public static Object init(Context cx, Scriptable scope, boolean sealed) {
         LambdaConstructor constructor =
                 new LambdaConstructor(
                         scope,
@@ -80,11 +80,10 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
 
         constructor.defineConstructorMethod(
                 scope, "revocable", 2, NativeProxy::revocable, DONTENUM, DONTENUM | READONLY);
-
-        ScriptableObject.defineProperty(scope, PROXY_TAG, constructor, DONTENUM);
         if (sealed) {
             constructor.sealObject();
         }
+        return constructor;
     }
 
     private NativeProxy(ScriptableObject target, Scriptable handler) {

@@ -1,6 +1,7 @@
 package org.mozilla.javascript.tests;
 
 import org.junit.Test;
+import org.mozilla.javascript.testutils.Utils;
 
 public class NullishCoalescingOpTest {
     @Test
@@ -37,22 +38,24 @@ public class NullishCoalescingOpTest {
 
     @Test
     public void testNullishCoalescingEvalOnce() {
-        String script =
-                "var runs = 0; \n"
-                        + "function f() { runs++; return 3; } \n"
-                        + "var eval1 = f() ?? 42; \n"
-                        + "runs";
-        Utils.assertWithAllModes_ES6(1, script);
+        Utils.assertWithAllModes_ES6(
+                1,
+                Utils.lines(
+                        "var runs = 0;",
+                        "function f() { runs++; return 3; }",
+                        "var eval1 = f() ?? 42;",
+                        "runs"));
     }
 
     @Test
     public void testNullishCoalescingDoesNotEvaluateRightHandSideIfNotNecessary() {
-        String script =
-                "var runs = 0; \n"
-                        + "function f() { runs++; return 3; } \n"
-                        + "var eval1 = 42 ?? f(); \n"
-                        + "runs";
-        Utils.assertWithAllModes_ES6(0, script);
+        Utils.assertWithAllModes_ES6(
+                0,
+                Utils.lines(
+                        "var runs = 0;",
+                        "function f() { runs++; return 3; }",
+                        "var eval1 = 42 ?? f();",
+                        "runs"));
     }
 
     @Test

@@ -1,7 +1,7 @@
 package org.mozilla.javascript.tests.es6;
 
 import org.junit.Test;
-import org.mozilla.javascript.tests.Utils;
+import org.mozilla.javascript.testutils.Utils;
 
 public class NativeProxyTest {
 
@@ -80,6 +80,7 @@ public class NativeProxyTest {
                 "try { Proxy() } catch(e) { '' + e }");
     }
 
+    @Test
     public void construct() {
         String js =
                 "var _target, _handler, _args, _P;\n"

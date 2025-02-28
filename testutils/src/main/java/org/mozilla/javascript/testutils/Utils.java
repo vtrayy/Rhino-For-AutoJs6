@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.javascript.tests;
+package org.mozilla.javascript.testutils;
 
 import static org.junit.Assert.*;
 
+import java.util.stream.IntStream;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextAction;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.EcmaError;
 import org.mozilla.javascript.EvaluatorException;
+import org.mozilla.javascript.JavaScriptException;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
 import org.mozilla.javascript.TopLevel;
@@ -26,11 +28,19 @@ public class Utils {
     public static final int[] DEFAULT_OPT_LEVELS = new int[] {-1, 9};
 
     /**
+     * helper for joining multiple lines into one string, so that you don't need to do {@code
+     * "line1\n" + "line2\n" + "line3"} by yourself
+     */
+    public static String lines(String... lines) {
+        return String.join("\n", lines);
+    }
+
+    /**
      * Execute the provided script in a fresh context as "myScript.js".
      *
      * @param script the script code
      */
-    static void executeScript(String script, boolean interpreted) {
+    public static void executeScript(String script, boolean interpreted) {
         Utils.runWithMode(
                 cx -> {
                     final Scriptable scope = cx.initStandardObjects();
@@ -168,7 +178,27 @@ public class Utils {
             final String message,
             final Object expected,
             final String script) {
+        assertWithAllModes(new ContextFactory(), languageVersion, message, expected, script);
+    }
+
+    /**
+     * Execute the provided script and assert the result.
+     *
+     * @param contextFactory a user defined {@link ContextFactory}
+     * @param languageVersion the language version constant from @{@link Context} or -1 to not
+     *     change the language version at all
+     * @param message the message to be used if this fails
+     * @param expected the expected result
+     * @param script the javascript script to execute
+     */
+    public static void assertWithAllModes(
+            final ContextFactory contextFactory,
+            final int languageVersion,
+            final String message,
+            final Object expected,
+            final String script) {
         runWithAllModes(
+                contextFactory,
                 cx -> {
                     if (languageVersion > -1) {
                         cx.setLanguageVersion(languageVersion);
@@ -261,6 +291,46 @@ public class Utils {
     }
 
     /**
+     * Execute the provided script and assert an {@link org.mozilla.javascript.JavaScriptException}.
+     * The error message of the {@link org.mozilla.javascript.JavaScriptException} has to start with
+     * the provided expectedMessage.
+     *
+     * @param expectedMessage the expected result
+     * @param script the javascript script to execute
+     */
+    public static void assertJavaScriptException(
+            final String expectedMessage, final String script) {
+        assertException(-1, JavaScriptException.class, expectedMessage, script);
+    }
+
+    /**
+     * Execute the provided script and assert an {@link JavaScriptException}. The error message of
+     * the {@link JavaScriptException} has to start with the provided expectedMessage. Before the
+     * execution the language version is set to {@link Context#VERSION_1_8}.
+     *
+     * @param expectedMessage the expected result
+     * @param script the javascript script to execute
+     */
+    public static void assertJavaScriptException_1_8(
+            final String expectedMessage, final String script) {
+        assertException(Context.VERSION_1_8, JavaScriptException.class, expectedMessage, script);
+    }
+
+    /**
+     * Execute the provided script and assert an {@link org.mozilla.javascript.JavaScriptException}.
+     * The error message of the {@link org.mozilla.javascript.JavaScriptException} has to start with
+     * the provided expectedMessage. Before the execution the language version is set to {@link
+     * Context#VERSION_1_8}.
+     *
+     * @param expectedMessage the expected result
+     * @param script the javascript script to execute
+     */
+    public static void assertJavaScriptException_ES6(
+            final String expectedMessage, final String script) {
+        assertException(Context.VERSION_ES6, JavaScriptException.class, expectedMessage, script);
+    }
+
+    /**
      * Execute the provided script and assert an {@link EcmaError}. The error message of the {@link
      * EcmaError} has to start with the provided expectedMessage. Before the execution the language
      * version is set to {@link Context#VERSION_1_8}.
@@ -272,7 +342,17 @@ public class Utils {
         assertException(Context.VERSION_ES6, EcmaError.class, expectedMessage, script);
     }
 
-    private static <T extends Exception> void assertException(
+    public static <T extends Exception> void assertException(
+            final int languageVersion,
+            final Class<T> expectedThrowable,
+            final String expectedMessage,
+            String js) {
+        assertException(
+                new ContextFactory(), languageVersion, expectedThrowable, expectedMessage, js);
+    }
+
+    public static <T extends Exception> void assertException(
+            final ContextFactory contextFactory,
             final int languageVersion,
             final Class<T> expectedThrowable,
             final String expectedMessage,
@@ -284,6 +364,7 @@ public class Utils {
                 expectedMessage != null && !expectedMessage.isEmpty());
 
         Utils.runWithAllModes(
+                contextFactory,
                 cx -> {
                     if (languageVersion > -1) {
                         cx.setLanguageVersion(languageVersion);
@@ -304,5 +385,31 @@ public class Utils {
                             e.getMessage().startsWith(expectedMessage));
                     return null;
                 });
+    }
+
+    /**
+     * @param features the features to enable in addition to the already enabled featured from the
+     *     {@link ContextFactory}
+     * @return a new {@link ContextFactory} with all provided features enabled
+     */
+    public static ContextFactory contextFactoryWithFeatures(int... features) {
+        return new ContextFactoryWithFeatures(features);
+    }
+
+    private static class ContextFactoryWithFeatures extends ContextFactory {
+        private final int[] features;
+
+        private ContextFactoryWithFeatures(int... features) {
+            this.features = features;
+        }
+
+        @Override
+        protected boolean hasFeature(Context cx, int featureIndex) {
+            if (IntStream.of(features).anyMatch(x -> x == featureIndex)) {
+                return true;
+            }
+
+            return super.hasFeature(cx, featureIndex);
+        }
     }
 }
