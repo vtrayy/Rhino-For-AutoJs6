@@ -19,7 +19,7 @@ public abstract class SlotMapOwner {
     @SuppressWarnings("AndroidJdkLibsChecker")
     static final class ThreadedAccess {
 
-        private static final VarHandle SLOT_MAP = getSlotMapHandle();
+        // private static final VarHandle SLOT_MAP = getSlotMapHandle();
 
         private static VarHandle getSlotMapHandle() {
             try {
@@ -31,7 +31,17 @@ public abstract class SlotMapOwner {
         }
 
         static SlotMap checkAndReplaceMap(SlotMapOwner owner, SlotMap oldMap, SlotMap newMap) {
-            return (SlotMap) SLOT_MAP.compareAndExchange(owner, oldMap, newMap);
+            // @Hint by SuperMonster003 on Feb 28, 2025.
+            //  ! Compatible with Android 7.x.
+            //  ! zh-CN: 兼容安卓 7.x.
+            //  # return (SlotMap) SLOT_MAP.compareAndExchange(owner, oldMap, newMap);
+            synchronized (owner) {
+                if (owner.slotMap == oldMap) {
+                    owner.slotMap = newMap;
+                    return newMap;
+                }
+                return owner.slotMap;
+            }
         }
     }
 
