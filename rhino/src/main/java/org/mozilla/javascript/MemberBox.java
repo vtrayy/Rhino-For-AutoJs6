@@ -50,7 +50,7 @@ final class MemberBox implements Serializable {
         this.argTypes = method.getParameterTypes();
         this.argNullability =
                 nullDetector == null
-                        ? new boolean[method.getParameters().length]
+                        ? new boolean[method.getParameterTypes().length]
                         : nullDetector.getParameterNullability(method);
         this.vararg = method.isVarArgs();
     }
@@ -60,7 +60,7 @@ final class MemberBox implements Serializable {
         this.argTypes = constructor.getParameterTypes();
         this.argNullability =
                 nullDetector == null
-                        ? new boolean[constructor.getParameters().length]
+                        ? new boolean[constructor.getParameterTypes().length]
                         : nullDetector.getParameterNullability(constructor);
         this.vararg = constructor.isVarArgs();
     }
