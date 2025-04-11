@@ -335,7 +335,21 @@ public class BaseFunction extends IdScriptableObject implements Function {
         int id = f.methodId();
         switch (id) {
             case Id_constructor:
-                return jsConstructor(cx, scope, args);
+                if (cx.isStrictMode()) {
+                    // Disable strict mode forcefully, and restore it after the call
+                    NativeCall activation = cx.currentActivationCall;
+                    boolean strictMode = cx.isTopLevelStrict;
+                    try {
+                        cx.currentActivationCall = null;
+                        cx.isTopLevelStrict = false;
+                        return jsConstructor(cx, scope, args);
+                    } finally {
+                        cx.isTopLevelStrict = strictMode;
+                        cx.currentActivationCall = activation;
+                    }
+                } else {
+                    return jsConstructor(cx, scope, args);
+                }
 
             case Id_toString:
                 {
@@ -391,7 +405,8 @@ public class BaseFunction extends IdScriptableObject implements Function {
                                 ((NativeFunction) ((BoundFunction) thisObj).getTargetFunction())
                                         .getPrototypeProperty();
                     else protoProp = ScriptableObject.getProperty(thisObj, "prototype");
-                    if (protoProp instanceof IdScriptableObject) {
+                    if (protoProp instanceof NativeObject
+                            || protoProp instanceof IdScriptableObject) {
                         return ScriptRuntime.jsDelegatesTo(obj, (Scriptable) protoProp);
                     }
                     throw ScriptRuntime.typeErrorById(
@@ -505,9 +520,7 @@ public class BaseFunction extends IdScriptableObject implements Function {
             sb.append(getFunctionName());
             sb.append("() {\n\t");
         }
-        sb.append("[native code, arity=");
-        sb.append(getArity());
-        sb.append("]\n");
+        sb.append("[native code]\n");
         if (!justbody) {
             sb.append("}\n");
         }
