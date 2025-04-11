@@ -759,7 +759,7 @@ public class NativeObject extends ScriptableObject implements Map {
         }
     }
 
-    private static Scriptable getCompatibleObject(Context cx, Scriptable scope, Object arg) {
+    public static Scriptable getCompatibleObject(Context cx, Scriptable scope, Object arg) {
         if (cx.getLanguageVersion() >= Context.VERSION_ES6) {
             Scriptable s = ScriptRuntime.toObject(cx, scope, arg);
             return ensureScriptable(s);

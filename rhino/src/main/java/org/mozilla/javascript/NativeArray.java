@@ -465,7 +465,7 @@ public class NativeArray extends ScriptableObject implements List {
     }
 
     @Override
-    protected ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
+    public ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
         if (dense != null) {
             int index = toDenseIndex(id);
             if (0 <= index && index < dense.length && dense[index] != NOT_FOUND) {
@@ -1118,7 +1118,7 @@ public class NativeArray extends ScriptableObject implements List {
     }
 
     /** See ECMA 15.4.4.5 */
-    private static Scriptable js_sort(
+    public static Scriptable js_sort(
             final Context cx,
             final Scriptable scope,
             final Scriptable thisObj,
