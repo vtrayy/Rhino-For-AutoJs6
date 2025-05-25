@@ -18,12 +18,10 @@ package org.mozilla.javascript;
  * <p>There are many static methods defined in ScriptableObject that perform the multiple calls to
  * the Scriptable interface needed in order to manipulate properties in prototype chains.
  *
- * <p>
- *
+ * @see org.mozilla.javascript.ScriptableObject
  * @author Norris Boyd
  * @author Nick Thompson
  * @author Brendan Eich
- * @see org.mozilla.javascript.ScriptableObject
  */
 public interface Scriptable {
 
@@ -35,9 +33,7 @@ public interface Scriptable {
      */
     public String getClassName();
 
-    /**
-     * Value returned from <code>get</code> if the property is not found.
-     */
+    /** Value returned from <code>get</code> if the property is not found. */
     public static final Object NOT_FOUND = UniqueTag.NOT_FOUND;
 
     /**
@@ -75,7 +71,7 @@ public interface Scriptable {
      *   <LI>NOT_FOUND
      * </UL>
      *
-     * @param name  the name of the property
+     * @param name the name of the property
      * @param start the object in which the lookup began
      * @return the value of the property (may be null), or NOT_FOUND
      * @see org.mozilla.javascript.Context#getUndefinedValue
@@ -98,7 +94,7 @@ public interface Scriptable {
      * @param index the numeric index for the property
      * @param start the object in which the lookup began
      * @return the value of the property (may be null), or NOT_FOUND
-     * @see org.mozilla.javascript.Scriptable#get(String, Scriptable)
+     * @see org.mozilla.javascript.Scriptable#get(String,Scriptable)
      */
     public Object get(int index, Scriptable start);
 
@@ -109,9 +105,7 @@ public interface Scriptable {
      *
      * <p>The property is specified by a String name as defined for the <code>get</code> method.
      *
-     * <p>
-     *
-     * @param name  the name of the property
+     * @param name the name of the property
      * @param start the object in which the lookup began
      * @return true if and only if the named property is found in the object
      * @see org.mozilla.javascript.Scriptable#get(String, Scriptable)
@@ -132,8 +126,6 @@ public interface Scriptable {
      * <p>Does not traverse the prototype chain.
      *
      * <p>The property is specified by an integral index as defined for the <code>get</code> method.
-     *
-     * <p>
      *
      * @param index the numeric index for the property
      * @param start the object in which the lookup began
@@ -166,12 +158,12 @@ public interface Scriptable {
      * <p>The values that may be set are limited to the following:
      *
      * <UL>
-     * <LI>java.lang.Boolean objects
-     * <LI>java.lang.String objects
-     * <LI>java.lang.Number objects
-     * <LI>org.mozilla.javascript.Scriptable objects
-     * <LI>null
-     * <LI>The value returned by Context.getUndefinedValue()
+     *   <LI>java.lang.Boolean objects
+     *   <LI>java.lang.String objects
+     *   <LI>java.lang.Number objects
+     *   <LI>org.mozilla.javascript.Scriptable objects
+     *   <LI>null
+     *   <LI>The value returned by Context.getUndefinedValue()
      * </UL>
      *
      * <p>Arbitrary Java objects may be wrapped in a Scriptable by first calling <code>
@@ -182,7 +174,7 @@ public interface Scriptable {
      * called to determine in which object the property is defined. Note that this method is not
      * expected to traverse the prototype chain, which is different from the ECMA [[Put]] operation.
      *
-     * @param name  the name of the property
+     * @param name the name of the property
      * @param start the object whose property is being set
      * @param value value to set the property to
      * @see org.mozilla.javascript.Scriptable#has(String, Scriptable)
@@ -280,7 +272,7 @@ public interface Scriptable {
      * considered non-enumerable.
      *
      * @return an array of Objects. Each entry in the array is either a java.lang.String or a
-     * java.lang.Number
+     *     java.lang.Number
      */
     public Object[] getIds();
 
