@@ -24,6 +24,7 @@ import java.util.Locale;
  *     <a href="https://dxr.mozilla.org/mozilla-central/source/js/src/jsdate.cpp">jsdate.cpp</a>
  */
 @SuppressWarnings("AndroidJdkLibsChecker")
+// java.time.format API added in API level 26
 public final class NativeDate extends IdScriptableObject {
     private static final long serialVersionUID = -8307438915861678966L;
 
@@ -1637,28 +1638,28 @@ public final class NativeDate extends IdScriptableObject {
         switch (methodId) {
             case Id_setUTCMilliseconds:
                 local = false;
-                // fallthrough
+            // fallthrough
             case Id_setMilliseconds:
                 maxargs = 1;
                 break;
 
             case Id_setUTCSeconds:
                 local = false;
-                // fallthrough
+            // fallthrough
             case Id_setSeconds:
                 maxargs = 2;
                 break;
 
             case Id_setUTCMinutes:
                 local = false;
-                // fallthrough
+            // fallthrough
             case Id_setMinutes:
                 maxargs = 3;
                 break;
 
             case Id_setUTCHours:
                 local = false;
-                // fallthrough
+            // fallthrough
             case Id_setHours:
                 maxargs = 4;
                 break;
@@ -1724,21 +1725,21 @@ public final class NativeDate extends IdScriptableObject {
         switch (methodId) {
             case Id_setUTCDate:
                 local = false;
-                // fallthrough
+            // fallthrough
             case Id_setDate:
                 maxargs = 1;
                 break;
 
             case Id_setUTCMonth:
                 local = false;
-                // fallthrough
+            // fallthrough
             case Id_setMonth:
                 maxargs = 2;
                 break;
 
             case Id_setUTCFullYear:
                 local = false;
-                // fallthrough
+            // fallthrough
             case Id_setFullYear:
                 maxargs = 3;
                 break;
