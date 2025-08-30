@@ -139,6 +139,7 @@ public final class NativeError extends IdScriptableObject {
     protected void fillConstructorProperties(IdFunctionObject ctor) {
         addIdFunctionProperty(
                 ctor, ERROR_TAG, ConstructorId_captureStackTrace, "captureStackTrace", 2);
+        addIdFunctionProperty(ctor, ERROR_TAG, ConstructorId_isError, "isError", 1);
 
         // This is running on the global "Error" object. Associate an object there that can store
         // default stack trace, etc.
@@ -222,6 +223,9 @@ public final class NativeError extends IdScriptableObject {
             case ConstructorId_captureStackTrace:
                 js_captureStackTrace(cx, scope, thisObj, args);
                 return Undefined.instance;
+
+            case ConstructorId_isError:
+                return js_isError(args);
         }
         throw new IllegalArgumentException(String.valueOf(id));
     }
@@ -390,6 +394,11 @@ public final class NativeError extends IdScriptableObject {
         obj.defineProperty(STACK_TAG, err.get(STACK_TAG), DONTENUM);
     }
 
+    private static Boolean js_isError(Object[] args) {
+        Object arg = args.length > 0 ? args[0] : Undefined.instance;
+        return Boolean.valueOf(arg instanceof NativeError);
+    }
+
     @Override
     protected int findPrototypeId(String s) {
         int id;
@@ -414,6 +423,7 @@ public final class NativeError extends IdScriptableObject {
             Id_toString = 2,
             Id_toSource = 3,
             ConstructorId_captureStackTrace = -1,
+            ConstructorId_isError = -2,
             MAX_PROTOTYPE_ID = 3;
 
     /**
