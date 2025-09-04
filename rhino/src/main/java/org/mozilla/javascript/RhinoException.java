@@ -390,5 +390,5 @@ public abstract class RhinoException extends RuntimeException {
     private int columnNumber;
 
     Object interpreterStackInfo;
-    int[] interpreterLineData;
+    int interpreterLineData;
 }
