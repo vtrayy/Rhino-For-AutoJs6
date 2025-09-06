@@ -8,6 +8,7 @@ package org.mozilla.javascript;
 
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -299,7 +300,7 @@ public class ScriptRuntime {
     static String[] getTopPackageNames() {
         // Include "android" top package if running on Android
         String[] names = {"java", "javax", "org", "com", "edu", "net", "jp", "de", "okhttp3", "androidx", "kotlin", "ezy", "okio", "io", "eu"};
-        return "Dalvik".equals(System.getProperty("java.vm.name"))
+        return androidApi > 0
                 ? Stream.concat(Arrays.stream(names), Arrays.stream(new String[]{"android"})).toArray(String[]::new)
                 : names;
     }
@@ -6154,9 +6155,27 @@ public class ScriptRuntime {
         }
     }
 
+    private static int detectAndroidApi() {
+
+        try {
+            Class<?> versionClass = Class.forName("android.os.Build$VERSION");
+            Field sdkInt = versionClass.getField("SDK_INT");
+            return sdkInt.getInt(null);
+        } catch (NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
+            if ("Dalvik".equals(System.getProperty("java.vm.name"))) {
+                // Fall back to vm-name
+                return 1;
+            }
+        }
+        return -1;
+    }
+
     public static final Object[] emptyArgs = new Object[0];
     public static final String[] emptyStrings = new String[0];
 
     static final XMLLoader xmlLoaderImpl =
             ScriptRuntime.loadOneServiceImplementation(XMLLoader.class);
+
+    /** This value holds the current android API version (or -1) if not running on android */
+    static final int androidApi = detectAndroidApi();
 }
