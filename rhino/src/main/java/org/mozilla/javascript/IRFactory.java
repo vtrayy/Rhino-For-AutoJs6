@@ -2017,6 +2017,108 @@ public final class IRFactory {
         throw Kit.codeBug();
     }
 
+    // @Caution by SuperMonster003 on Sep 10, 2025.
+    //  ! Will cause StackOverflowError on AutoJs6.
+    //  ! zh-CN: 将导致 AutoJs6 触发 StackOverflowError.
+    //  !
+    //  ! Source: https://github.com/mozilla/rhino/commit/30610299e133a9ac5045cd54aba7891a02365fd0
+    //  !
+    //  ! java.lang.StackOverflowError: stack size 1039KB
+    //  !   at java.lang.Object.hashCode(Object.java:115)
+    //  !   at java.util.WeakHashMap.hash(WeakHashMap.java:298)
+    //  !   at java.util.WeakHashMap.getEntry(WeakHashMap.java:427)
+    //  !   at java.util.WeakHashMap.containsKey(WeakHashMap.java:418)
+    //  !   at java.util.Collections$SetFromMap.contains(Collections.java:5516)
+    //  !   at org.autojs.autojs.lang.ThreadCompat.isInterrupted(ThreadCompat.java:56)
+    //  !   at org.autojs.autojs.rhino.InterruptibleAndroidContextFactory.observeInstructionCount(InterruptibleAndroidContextFactory.java:28)
+    //  !   at org.mozilla.javascript.Context.observeInstructionCount(Context.java:2402)
+    //  !   at org.mozilla.javascript.Interpreter.addInstructionCount(Interpreter.java:4064)
+    //  !   at org.mozilla.javascript.Interpreter.interpretLoop(Interpreter.java:2725)
+    //  !   at org.mozilla.javascript.Interpreter.interpret(Interpreter.java:1192)
+    //  !   at org.mozilla.javascript.InterpretedFunction.call(InterpretedFunction.java:87)
+    //  !   ... ...
+    //  !   at org.mozilla.javascript.AccessorSlot.getValue(AccessorSlot.java:106)
+    //  !   at org.mozilla.javascript.ScriptableObject.get(ScriptableObject.java:233)
+    //  !   at org.mozilla.javascript.ScriptableObject.getPropWalkingPrototypeChain(ScriptableObject.java:2305)
+    //  !   at org.mozilla.javascript.ScriptableObject.getProperty(ScriptableObject.java:2290)
+    //  !   at org.mozilla.javascript.ScriptRuntime.getObjectProp(ScriptRuntime.java:1798)
+    //  !   at org.mozilla.javascript.ScriptRuntime.getObjectProp(ScriptRuntime.java:1794)
+    //  !   at org.mozilla.javascript.Interpreter.interpretLoop(Interpreter.java:1749)
+    //  !   at org.mozilla.javascript.Interpreter.interpret(Interpreter.java:1192)
+    //  !   at org.mozilla.javascript.InterpretedFunction.call(InterpretedFunction.java:87)
+    //  !   at org.mozilla.javascript.ArrowFunction.call(ArrowFunction.java:52)
+    //  !   at org.mozilla.javascript.ArrayLikeAbstractOperations.coercibleIterativeMethod(ArrayLikeAbstractOperations.java:184)
+    //  !   at org.mozilla.javascript.ArrayLikeAbstractOperations.iterativeMethod(ArrayLikeAbstractOperations.java:121)
+    //  !   at org.mozilla.javascript.ArrayLikeAbstractOperations.iterativeMethod(ArrayLikeAbstractOperations.java:95)
+    //  !   at org.mozilla.javascript.NativeArray$$ExternalSyntheticLambda1.call(D8$$SyntheticClass:0)
+    //  !   at org.mozilla.javascript.Interpreter.doCallByteCode(Interpreter.java:3033)
+    //  !   at org.mozilla.javascript.Interpreter.interpretLoop(Interpreter.java:1990)
+    //  !   at org.mozilla.javascript.Interpreter.interpret(Interpreter.java:1192)
+    //  !   at org.mozilla.javascript.InterpretedFunction.exec(InterpretedFunction.java:103)
+    //  !   at android.os.Handler.dispatchMessage(Handler.java:99)
+    //  !   at android.os.Looper.loopOnce(Looper.java:346)
+    //  !   at android.os.Looper.loop(Looper.java:475)
+    //  !   at org.autojs.autojs.engine.LoopBasedJavaScriptEngine.execute(LoopBasedJavaScriptEngine.java:41)
+    //  !   at org.autojs.autojs.execution.LoopedBasedJavaScriptExecution.doExecution(LoopedBasedJavaScriptExecution.java:46)
+    //  !   at java.lang.Thread.run(Thread.java:1012)
+    //  #
+    //  # private Node createPropertyGet(
+    //  #         Node target, String namespace, String name, int memberTypeFlags, int type) {
+    //  #     if (namespace == null && memberTypeFlags == 0) {
+    //  #         if (target == null) {
+    //  #             return parser.createName(name);
+    //  #         }
+    //  #         parser.checkActivationName(name, Token.GETPROP);
+    //  #
+    //  #         if (target.getType() == Token.SUPER && ScriptRuntime.isSpecialSuperProperty(name)) {
+    //  #             // We have access to super.__proto__ or super.__parent__.
+    //  #             // This needs to behave in the same way as this.__proto__ - it really is not
+    //  #             // obvious why, but you can test it in v8 or any other engine. So, we just
+    //  #             // replace SUPER with THIS in the AST. It's a bit hacky, but it works - see the
+    //  #             // test cases in SuperTest!
+    //  #             if (!(target instanceof KeywordLiteral)) {
+    //  #                 throw Kit.codeBug();
+    //  #             }
+    //  #             KeywordLiteral oldTarget = (KeywordLiteral) target;
+    //  #             target =
+    //  #                     new KeywordLiteral(
+    //  #                             oldTarget.getPosition(), oldTarget.getLength(), Token.THIS);
+    //  #             target.setLineColumnNumber(oldTarget.getLineno(), oldTarget.getColumn());
+    //  #
+    //  #             Node ref = new Node(Token.REF_SPECIAL, target);
+    //  #             ref.putProp(Node.NAME_PROP, name);
+    //  #             Node getRef = new Node(Token.GET_REF, ref);
+    //  #             if (type == Token.QUESTION_DOT) {
+    //  #                 ref.putIntProp(Node.OPTIONAL_CHAINING, 1);
+    //  #                 getRef.putIntProp(Node.OPTIONAL_CHAINING, 1);
+    //  #             }
+    //  #             return getRef;
+    //  #         } else if (ScriptRuntime.isSpecialProperty(
+    //  #                 name, parser.compilerEnv.getLanguageVersion())) {
+    //  #             Node ref = new Node(Token.REF_SPECIAL, target);
+    //  #             ref.putProp(Node.NAME_PROP, name);
+    //  #             Node getRef = new Node(Token.GET_REF, ref);
+    //  #             if (type == Token.QUESTION_DOT) {
+    //  #                 ref.putIntProp(Node.OPTIONAL_CHAINING, 1);
+    //  #                 getRef.putIntProp(Node.OPTIONAL_CHAINING, 1);
+    //  #             }
+    //  #             return getRef;
+    //  #         }
+    //  #
+    //  #         Node node = new Node(Token.GETPROP, target, Node.newString(name));
+    //  #         if (type == Token.QUESTION_DOT) {
+    //  #             node.putIntProp(Node.OPTIONAL_CHAINING, 1);
+    //  #         }
+    //  #         if (target.getType() == Token.SUPER) {
+    //  #             node.putIntProp(Node.SUPER_PROPERTY_ACCESS, 1);
+    //  #         }
+    //  #         return node;
+    //  #     }
+    //  #     Node elem = Node.newString(name);
+    //  #     memberTypeFlags |= Node.PROPERTY_FLAG;
+    //  #     return createMemberRefGet(target, namespace, elem, memberTypeFlags);
+    //  # }
+
     private Node createPropertyGet(
             Node target, String namespace, String name, int memberTypeFlags, int type) {
         if (namespace == null && memberTypeFlags == 0) {
@@ -2024,34 +2126,23 @@ public final class IRFactory {
                 return parser.createName(name);
             }
             parser.checkActivationName(name, Token.GETPROP);
-
-            if (target.getType() == Token.SUPER && NativeObject.PROTO_PROPERTY.equals(name)) {
-                // We have access to super.__proto__.
-                // This needs to behave in the same way as this.__proto__ - it really is not
-                // obvious why, but you can test it in v8 or any other engine. So, we just
-                // replace SUPER with THIS in the AST. It's a bit hacky, but it works - see the
-                // test cases in SuperTest!
-                if (!(target instanceof KeywordLiteral)) {
-                    throw Kit.codeBug();
+            if (ScriptRuntime.isSpecialProperty(name)) {
+                if (target.getType() == Token.SUPER) {
+                    // We have an access to super.__proto__ or super.__parent__.
+                    // This needs to behave in the same way as this.__proto__ - it really is not
+                    // obvious why, but you can test it in v8 or any other engine. So, we just
+                    // replace SUPER with THIS in the AST. It's a bit hacky, but it works - see the
+                    // test cases in SuperTest!
+                    if (!(target instanceof KeywordLiteral)) {
+                        throw Kit.codeBug();
+                    }
+                    KeywordLiteral oldTarget = (KeywordLiteral) target;
+                    target =
+                            new KeywordLiteral(
+                                    oldTarget.getPosition(), oldTarget.getLength(), Token.THIS);
+                    target.setLineColumnNumber(oldTarget.getLineno(), oldTarget.getColumn());
                 }
-                KeywordLiteral oldTarget = (KeywordLiteral) target;
-                target =
-                        new KeywordLiteral(
-                                oldTarget.getPosition(), oldTarget.getLength(), Token.THIS);
-                target.setLineColumnNumber(oldTarget.getLineno(), oldTarget.getColumn());
 
-                Node ref = new Node(Token.REF_SPECIAL, target);
-                ref.putProp(Node.NAME_PROP, name);
-                Node getRef = new Node(Token.GET_REF, ref);
-                if (type == Token.QUESTION_DOT) {
-                    ref.putIntProp(Node.OPTIONAL_CHAINING, 1);
-                    getRef.putIntProp(Node.OPTIONAL_CHAINING, 1);
-                }
-                return getRef;
-            }
-
-            if (parser.compilerEnv.getLanguageVersion() < Context.VERSION_ES6
-                    && ScriptRuntime.isSpecialProperty(name)) {
                 Node ref = new Node(Token.REF_SPECIAL, target);
                 ref.putProp(Node.NAME_PROP, name);
                 Node getRef = new Node(Token.GET_REF, ref);
