@@ -213,7 +213,8 @@ public final class NativeIterator extends IdScriptableObject {
 
     /**
      * If "obj" is a java.util.Iterator or a java.lang.Iterable, return a wrapping as a JavaScript
-     * Iterator. Otherwise, return null.
+     * Iterator. Otherwise, return null. This method is in VMBridge since Iterable is a JDK 1.5
+     * addition.
      */
     private static Iterator<?> getJavaIterator(Object obj) {
         if (obj instanceof Wrapper) {

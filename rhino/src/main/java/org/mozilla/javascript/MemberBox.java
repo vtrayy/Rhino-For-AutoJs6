@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
@@ -277,7 +276,7 @@ final class MemberBox implements Serializable {
                     memberObject = accessible;
                     method = accessible;
                 } else {
-                    if (!tryToMakeAccessible(method)) {
+                    if (!VMBridge.instance.tryToMakeAccessible(method)) {
                         throw Context.throwAsScriptRuntimeEx(ex);
                     }
                 }
@@ -303,7 +302,7 @@ final class MemberBox implements Serializable {
             try {
                 return ctor.newInstance(args);
             } catch (IllegalAccessException ex) {
-                if (!tryToMakeAccessible(ctor)) {
+                if (!VMBridge.instance.tryToMakeAccessible(ctor)) {
                     throw Context.throwAsScriptRuntimeEx(ex);
                 }
             }
@@ -311,14 +310,6 @@ final class MemberBox implements Serializable {
         } catch (Exception ex) {
             throw Context.throwAsScriptRuntimeEx(ex);
         }
-    }
-
-    @SuppressWarnings("deprecation")
-    private static boolean tryToMakeAccessible(AccessibleObject accessible) {
-        if (!accessible.isAccessible()) {
-            accessible.setAccessible(true);
-        }
-        return true;
     }
 
     private static Method searchAccessibleMethod(Method method, Class<?>[] params) {
