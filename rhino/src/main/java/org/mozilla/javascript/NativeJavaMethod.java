@@ -40,7 +40,7 @@ public class NativeJavaMethod extends BaseFunction {
         this.methods = new MemberBox[] {method};
     }
 
-    @Deprecated
+    // @Deprecated
     public NativeJavaMethod(Method method, String name) {
         this(new MemberBox(method, TypeInfoFactory.GLOBAL), name);
     }

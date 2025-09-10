@@ -380,7 +380,7 @@ public abstract class SlotMapOwner {
      *     deadlocks or other semantic issues.
      * @return the {@link CompoundOperationMap} which can be used for the operation.
      */
-    final CompoundOperationMap startCompoundOp(boolean forWriting) {
+    public final CompoundOperationMap startCompoundOp(boolean forWriting) {
         return slotMap.startCompoundOp(this, forWriting);
     }
 }
