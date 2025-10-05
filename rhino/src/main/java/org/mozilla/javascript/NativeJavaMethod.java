@@ -510,7 +510,7 @@ public class NativeJavaMethod extends BaseFunction {
         }
     }
 
-    MemberBox[] methods;
+    public MemberBox[] methods;
     private String functionName;
     private final transient CopyOnWriteArrayList<ResolvedOverload> overloadCache =
             new CopyOnWriteArrayList<>();

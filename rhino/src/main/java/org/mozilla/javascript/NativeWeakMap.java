@@ -133,7 +133,7 @@ public class NativeWeakMap extends ScriptableObject {
         // equals or hashCode, which means that in effect we are only keying on object identity.
         // This is all correct according to the ECMAscript spec.
         if (!isValidKey(key)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(key));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(key));
         }
         // Map.get() does not distinguish between "not found" and a null value. So,
         // replace true null here with a marker so that we can re-convert in "get".

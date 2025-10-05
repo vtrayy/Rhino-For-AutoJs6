@@ -4006,7 +4006,7 @@ public class NativeRegExp extends IdScriptableObject {
             Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
         // See ECMAScript spec 22.2.6.12
         if (!ScriptRuntime.isObject(thisObj)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(thisObj));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(thisObj));
         }
 
         String string = ScriptRuntime.toString(args.length > 0 ? args[0] : Undefined.instance);
@@ -4037,7 +4037,7 @@ public class NativeRegExp extends IdScriptableObject {
             Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
         // See ECMAScript spec 22.2.6.9
         if (!ScriptRuntime.isObject(thisObj)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(thisObj));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(thisObj));
         }
 
         String s = ScriptRuntime.toString(args.length > 0 ? args[0] : Undefined.instance);
@@ -4064,7 +4064,7 @@ public class NativeRegExp extends IdScriptableObject {
             Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
         // See ECMAScript spec 22.2.6.11
         if (!ScriptRuntime.isObject(thisObj)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(thisObj));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(thisObj));
         }
 
         String s = ScriptRuntime.toString(args.length > 0 ? args[0] : Undefined.instance);
@@ -4186,7 +4186,7 @@ public class NativeRegExp extends IdScriptableObject {
     private Object js_SymbolSplit(Context cx, Scriptable scope, Scriptable rx, Object[] args) {
         // See ECMAScript spec 22.2.6.14
         if (!ScriptRuntime.isObject(rx)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(rx));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(rx));
         }
 
         String s = ScriptRuntime.toString(args.length > 0 ? args[0] : Undefined.instance);

@@ -26,7 +26,7 @@ import org.mozilla.javascript.lc.type.TypeInfoFactory;
  *
  * @author Igor Bukanov
  */
-final class MemberBox implements Serializable {
+public final class MemberBox implements Serializable {
     private static final long serialVersionUID = 6358550398665688245L;
 
     private transient Member memberObject;
@@ -70,7 +70,7 @@ final class MemberBox implements Serializable {
         this.returnTypeInfo = TypeInfo.NONE;
     }
 
-    Method method() {
+    public Method method() {
         return (Method) memberObject;
     }
 

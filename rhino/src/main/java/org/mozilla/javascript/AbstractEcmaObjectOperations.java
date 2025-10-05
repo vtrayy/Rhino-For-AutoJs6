@@ -207,7 +207,7 @@ public class AbstractEcmaObjectOperations {
         }
         if (!ScriptRuntime.isObject(constructor)) {
             throw ScriptRuntime.typeErrorById(
-                    "msg.arg.not.object", ScriptRuntime.typeof(constructor));
+                    "msg.arg.not.object", ScriptRuntime.brief(constructor));
         }
         Object species = ScriptableObject.getProperty((Scriptable) constructor, SymbolKey.SPECIES);
         if (species == Scriptable.NOT_FOUND || species == null || Undefined.isUndefined(species)) {

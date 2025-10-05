@@ -130,7 +130,7 @@ public class NativePromise extends ScriptableObject {
     // Promise.resolve
     private static Object resolve(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
         if (!ScriptRuntime.isObject(thisObj)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(thisObj));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(thisObj));
         }
         Object arg = (args.length > 0 ? args[0] : Undefined.instance);
         return resolveInternal(cx, scope, thisObj, arg);
@@ -153,7 +153,7 @@ public class NativePromise extends ScriptableObject {
     // Promise.reject
     private static Object reject(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
         if (!ScriptRuntime.isObject(thisObj)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(thisObj));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(thisObj));
         }
         Object arg = (args.length > 0 ? args[0] : Undefined.instance);
         Capability cap = new Capability(cx, scope, thisObj);
@@ -327,7 +327,7 @@ public class NativePromise extends ScriptableObject {
     private static Object withResolvers(
             Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
         if (!ScriptRuntime.isObject(thisObj)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(thisObj));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(thisObj));
         }
 
         // Create a capability which properly constructs a promise with resolve/reject functions
@@ -346,7 +346,7 @@ public class NativePromise extends ScriptableObject {
     private static Object promiseTry(
             Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
         if (!ScriptRuntime.isObject(thisObj)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(thisObj));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(thisObj));
         }
 
         if (args.length < 1 || !(args[0] instanceof Callable)) {
@@ -436,7 +436,7 @@ public class NativePromise extends ScriptableObject {
             LambdaConstructor defaultConstructor,
             Object[] args) {
         if (!ScriptRuntime.isObject(thisObj)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(thisObj));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(thisObj));
         }
         Object onFinally = args.length > 0 ? args[0] : Undefined.SCRIPTABLE_UNDEFINED;
         Object thenFinally = onFinally;

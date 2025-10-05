@@ -2809,7 +2809,7 @@ public class ScriptRuntime {
                 Scriptable sVal = ScriptableObject.ensureScriptable(val);
                 if (sVal instanceof Symbol) {
                     throw ScriptRuntime.typeErrorById(
-                            "msg.arg.not.object", ScriptRuntime.typeof(sVal));
+                            "msg.arg.not.object", ScriptRuntime.species(sVal));
                 }
                 Object finalKey = sVal.get(0, sVal);
                 if (finalKey == Scriptable.NOT_FOUND) {
@@ -3604,6 +3604,37 @@ public class ScriptRuntime {
             return !(value instanceof Callable);
         }
         return false;
+    }
+
+    public static String species(Object value) {
+        try {
+            if (value == null) return "Null";
+            if (Undefined.isUndefined(value)) return "Undefined";
+            Context cx = Context.getCurrentContext();
+            Object obj = Context.javaToJS(value, cx.initStandardObjects());
+            if (obj instanceof Boolean) {
+                return "Boolean";
+            }
+            if (obj instanceof String) {
+                return "String";
+            }
+            if (obj instanceof BigInteger) {
+                return "BigInt";
+            }
+            if (obj instanceof Number) {
+                return "Number";
+            }
+            if (obj instanceof Scriptable) {
+                return ((Scriptable) obj).getClassName();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "Unknown";
+    }
+
+    public static String brief(Object value) {
+        return Context.toString(value) + " (" + species(value) + ")";
     }
 
     // neg:

@@ -2131,7 +2131,7 @@ public abstract class ScriptableObject extends SlotMapOwner
 
     public static Scriptable ensureScriptable(Object arg) {
         if (!(arg instanceof Scriptable))
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(arg));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(arg));
         return (Scriptable) arg;
     }
 
@@ -2149,12 +2149,12 @@ public abstract class ScriptableObject extends SlotMapOwner
         if (arg instanceof Delegator) {
             return (ScriptableObject) ((Delegator) arg).getDelegee();
         }
-        throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(arg));
+        throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(arg));
     }
 
     protected static ScriptableObject ensureScriptableObjectButNotSymbol(Object arg) {
         if (arg instanceof Symbol) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(arg));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(arg));
         }
         return ensureScriptableObject(arg);
     }

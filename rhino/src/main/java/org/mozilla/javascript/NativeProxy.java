@@ -1220,7 +1220,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                     || Undefined.isUndefined(handlerProto)
                     || ScriptRuntime.isSymbol(handlerProto)) {
                 throw ScriptRuntime.typeErrorById(
-                        "msg.arg.not.object", ScriptRuntime.typeof(handlerProto));
+                        "msg.arg.not.object", ScriptRuntime.brief(handlerProto));
             }
 
             handlerProtoScriptable = ensureScriptable(handlerProto);
@@ -1337,7 +1337,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
     private static Object revocable(
             Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
         if (!ScriptRuntime.isObject(thisObj)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(thisObj));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(thisObj));
         }
         NativeProxy proxy = constructor(cx, scope, args);
 

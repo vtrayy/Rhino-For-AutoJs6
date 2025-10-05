@@ -91,7 +91,7 @@ public class NativeWeakSet extends ScriptableObject {
         // equals or hashCode, which means that in effect we are only keying on object identity.
         // This is all correct according to the ECMAscript spec.
         if (!isValidValue(key)) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(key));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(key));
         }
         // Add a value to the map, but don't make it the key -- otherwise the WeakHashMap
         // will never GC anything.

@@ -116,7 +116,7 @@ final class NativeReflect extends ScriptableObject {
         }
 
         if (ScriptRuntime.isSymbol(args[2])) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(args[2]));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(args[2]));
         }
         ScriptableObject argumentsList = ScriptableObject.ensureScriptableObject(args[2]);
 
@@ -405,7 +405,7 @@ final class NativeReflect extends ScriptableObject {
         }
 
         if (ScriptRuntime.isSymbol(args[1])) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(args[0]));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(args[0]));
         }
 
         ScriptableObject proto = ScriptableObject.ensureScriptableObject(args[1]);
@@ -434,7 +434,7 @@ final class NativeReflect extends ScriptableObject {
         }
 
         if (ScriptRuntime.isSymbol(args[0])) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.typeof(args[0]));
+            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(args[0]));
         }
         return ScriptableObject.ensureScriptableObject(args[0]);
     }
