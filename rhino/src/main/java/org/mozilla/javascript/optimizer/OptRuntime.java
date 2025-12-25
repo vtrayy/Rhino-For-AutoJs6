@@ -4,14 +4,13 @@
 
 package org.mozilla.javascript.optimizer;
 
-import org.mozilla.javascript.ArrowFunction;
+import java.util.List;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.ES6Generator;
-import org.mozilla.javascript.Function;
+import org.mozilla.javascript.JSFunction;
 import org.mozilla.javascript.JavaScriptException;
-import org.mozilla.javascript.NativeFunction;
 import org.mozilla.javascript.NativeGenerator;
 import org.mozilla.javascript.NativeIterator;
 import org.mozilla.javascript.NewLiteralStorage;
@@ -150,14 +149,8 @@ public final class OptRuntime extends ScriptRuntime {
         return result;
     }
 
-    public static void initFunction(
-            NativeFunction fn, int functionType, Scriptable scope, Context cx) {
+    public static void initFunction(JSFunction fn, int functionType, Scriptable scope, Context cx) {
         ScriptRuntime.initFunction(cx, scope, fn, functionType, false);
-    }
-
-    public static Function bindThis(
-            NativeFunction fn, Context cx, Scriptable scope, Scriptable thisObj) {
-        return new ArrowFunction(cx, scope, fn, thisObj, null);
     }
 
     public static Object callSpecial(
@@ -237,8 +230,15 @@ public final class OptRuntime extends ScriptRuntime {
 
     public static Scriptable newArrayLiteral(
             Object[] objects, String encodedInts, int skipCount, Context cx, Scriptable scope) {
-        int[] skipIndexces = decodeIntArray(encodedInts, skipCount);
-        return newArrayLiteral(objects, skipIndexces, cx, scope);
+        int[] skipIndexes = decodeIntArray(encodedInts, skipCount);
+        return newArrayLiteral(objects, skipIndexes, cx, scope);
+    }
+
+    // Work around because our bytecode generator can't handle the
+    // appropriate scaffolding for calling static interface methods.
+    @SafeVarargs
+    public static <E> List<E> listOf(E... items) {
+        return List.of((E[]) items);
     }
 
     public static void main(final Script script, final String[] args) {
@@ -268,13 +268,14 @@ public final class OptRuntime extends ScriptRuntime {
     }
 
     public static Scriptable createNativeGenerator(
-            NativeFunction funObj,
+            Context cx,
             Scriptable scope,
             Scriptable thisObj,
+            JSFunction funObj,
             int maxLocals,
             int maxStack) {
-        GeneratorState gs = new GeneratorState(thisObj, maxLocals, maxStack);
-        if (Context.getCurrentContext().getLanguageVersion() >= Context.VERSION_ES6) {
+        GeneratorState gs = new GeneratorState(scope, thisObj, maxLocals, maxStack);
+        if (cx.getLanguageVersion() >= Context.VERSION_ES6) {
             return new ES6Generator(scope, funObj, gs);
         } else {
             return new NativeGenerator(scope, funObj, gs);
@@ -308,8 +309,12 @@ public final class OptRuntime extends ScriptRuntime {
     }
 
     public static void spread(
-            Context cx, Scriptable scope, NewLiteralStorage store, Object source) {
-        store.spread(cx, scope, source);
+            Context cx,
+            Scriptable scope,
+            NewLiteralStorage store,
+            Object source,
+            int sourcePosition) {
+        store.spread(cx, scope, source, sourcePosition);
     }
 
     public static class GeneratorState {
@@ -323,8 +328,13 @@ public final class OptRuntime extends ScriptRuntime {
         static final String resumptionPoint_TYPE = "I";
 
         @SuppressWarnings("unused")
-        public Scriptable thisObj;
+        public final Scriptable thisObj;
 
+        @SuppressWarnings("unused")
+        public final Scriptable activationFrame;
+
+        static final String activationFrame_NAME = "activationFrame";
+        static final String activationFrame_TYPE = "Lorg/mozilla/javascript/Scriptable;";
         static final String thisObj_NAME = "thisObj";
         static final String thisObj_TYPE = "Lorg/mozilla/javascript/Scriptable;";
 
@@ -334,7 +344,9 @@ public final class OptRuntime extends ScriptRuntime {
         int maxStack;
         Object returnValue;
 
-        GeneratorState(Scriptable thisObj, int maxLocals, int maxStack) {
+        GeneratorState(
+                Scriptable activationFrame, Scriptable thisObj, int maxLocals, int maxStack) {
+            this.activationFrame = activationFrame;
             this.thisObj = thisObj;
             this.maxLocals = maxLocals;
             this.maxStack = maxStack;

@@ -8,6 +8,8 @@
 
 package org.mozilla.javascript;
 
+import java.util.Objects;
+
 public class IdFunctionObject extends BaseFunction {
     private static final long serialVersionUID = -5332312783643935019L;
 
@@ -42,7 +44,7 @@ public class IdFunctionObject extends BaseFunction {
     }
 
     public final boolean hasTag(Object tag) {
-        return tag == null ? this.tag == null : tag.equals(this.tag);
+        return Objects.equals(tag, this.tag);
     }
 
     public Object getTag() {
@@ -63,7 +65,7 @@ public class IdFunctionObject extends BaseFunction {
     }
 
     public void exportAsScopeProperty() {
-        addAsProperty(getParentScope());
+        addAsProperty(getDeclarationScope());
     }
 
     @Override
@@ -72,7 +74,7 @@ public class IdFunctionObject extends BaseFunction {
         // may not be called at all
         Scriptable proto = super.getPrototype();
         if (proto == null) {
-            proto = getFunctionPrototype(getParentScope());
+            proto = getFunctionPrototype(getDeclarationScope());
             setPrototype(proto);
         }
         return proto;

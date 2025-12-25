@@ -27,7 +27,8 @@ public interface FactoryBase extends TypeInfoFactory {
 
     @Override
     default TypeInfo create(ParameterizedType parameterizedType) {
-        return attachParam(
+        return new ParameterizedTypeInfoImpl(
+                create(parameterizedType.getOwnerType()),
                 create(parameterizedType.getRawType()),
                 createList(parameterizedType.getActualTypeArguments()));
     }
@@ -54,24 +55,11 @@ public interface FactoryBase extends TypeInfoFactory {
     @Override
     default TypeInfo attachParam(TypeInfo base, List<TypeInfo> params) {
         if (base instanceof ParameterizedTypeInfo) {
-            base = ((ParameterizedTypeInfo) base).rawType();
+            var parameterized = (ParameterizedTypeInfo) base;
+            return new ParameterizedTypeInfoImpl(
+                    parameterized.ownerType(), parameterized.rawType(), params);
         }
-        return new ParameterizedTypeInfoImpl(base, params);
-    }
-
-    private static Map<VariableTypeInfo, TypeInfo> transformMapping(
-            Map<VariableTypeInfo, TypeInfo> mapping, Map<VariableTypeInfo, TypeInfo> transformer) {
-        if (mapping.isEmpty()) {
-            return Map.of();
-        } else if (mapping.size() == 1) {
-            var entry = mapping.entrySet().iterator().next();
-            return Map.of(entry.getKey(), entry.getValue().consolidate(transformer));
-        }
-        var transformed = new HashMap<>(mapping);
-        for (var entry : transformed.entrySet()) {
-            entry.setValue(entry.getValue().consolidate(transformer));
-        }
-        return transformed;
+        return new ParameterizedTypeInfoImpl(TypeInfo.NONE, base, params);
     }
 
     /** Used by {@link #getConsolidationMapping(java.lang.Class)} */
@@ -105,9 +93,9 @@ public interface FactoryBase extends TypeInfoFactory {
         // then merge them together
         // Example: Ta -> Tb (from `superMapping`) will be transformed by Tb -> Te (from `mapping`),
         // forming Ta -> Te
-        var merged = new HashMap<>(transformMapping(superMapping, mapping));
+        var merged = new HashMap<>(TypeInfoFactory.transformMapping(superMapping, mapping));
         for (var interfaceMapping : interfaceMappings) {
-            merged.putAll(transformMapping(interfaceMapping, mapping));
+            merged.putAll(TypeInfoFactory.transformMapping(interfaceMapping, mapping));
         }
         merged.putAll(mapping);
 

@@ -170,8 +170,7 @@ public class NativeArray extends ScriptableObject implements List {
             String name,
             int length,
             SerializableCallable target) {
-        constructor.defineConstructorMethod(
-                scope, name, length, null, target, DONTENUM, DONTENUM | READONLY);
+        constructor.defineConstructorMethod(scope, name, length, target);
     }
 
     private static void defineMethodOnPrototype(
@@ -180,8 +179,7 @@ public class NativeArray extends ScriptableObject implements List {
             String name,
             int length,
             SerializableCallable target) {
-        constructor.definePrototypeMethod(
-                scope, name, length, null, target, DONTENUM, DONTENUM | READONLY);
+        constructor.definePrototypeMethod(scope, name, length, target);
     }
 
     private static void exposeMethodOnConstructor(
@@ -194,14 +192,11 @@ public class NativeArray extends ScriptableObject implements List {
                 scope,
                 name,
                 length,
-                null,
                 (cx, s, thisObj, args) -> {
                     var realThis = ScriptRuntime.toObject(cx, scope, args[0]);
                     var realArgs = Arrays.copyOfRange(args, 1, args.length);
                     return target.call(cx, s, realThis, realArgs);
-                },
-                DONTENUM,
-                DONTENUM | READONLY);
+                });
     }
 
     static int getMaximumInitialCapacity() {
@@ -236,8 +231,6 @@ public class NativeArray extends ScriptableObject implements List {
         return "Array";
     }
 
-    private static final int Id_length = 1, MAX_INSTANCE_ID = 1;
-
     @Override
     public void setPrototype(Scriptable p) {
         super.setPrototype(p);
@@ -251,7 +244,7 @@ public class NativeArray extends ScriptableObject implements List {
 
         obj = (NativeObject) cx.newObject(scope);
 
-        ScriptableObject desc = ScriptableObject.buildDataDescriptor(obj, true, EMPTY);
+        var desc = ScriptableObject.buildDataDescriptor(true, EMPTY);
         for (var k : UNSCOPABLES) {
             obj.defineOwnProperty(cx, k, desc);
         }
@@ -469,16 +462,8 @@ public class NativeArray extends ScriptableObject implements List {
         return super.getDefaultValue(hint);
     }
 
-    private ScriptableObject defaultIndexPropertyDescriptor(Object value) {
-        Scriptable scope = getParentScope();
-        if (scope == null) scope = this;
-        ScriptableObject desc = new NativeObject();
-        ScriptRuntime.setBuiltinProtoAndParent(desc, scope, TopLevel.Builtins.Object);
-        desc.defineProperty("value", value, EMPTY);
-        desc.defineProperty("writable", Boolean.TRUE, EMPTY);
-        desc.defineProperty("enumerable", Boolean.TRUE, EMPTY);
-        desc.defineProperty("configurable", Boolean.TRUE, EMPTY);
-        return desc;
+    private DescriptorInfo defaultIndexPropertyDescriptor(Object value) {
+        return new DescriptorInfo(true, true, true, NOT_FOUND, NOT_FOUND, value);
     }
 
     @Override
@@ -490,7 +475,7 @@ public class NativeArray extends ScriptableObject implements List {
     }
 
     @Override
-    public ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
+    public DescriptorInfo getOwnPropertyDescriptor(Context cx, Object id) {
         if (dense != null) {
             int index = toDenseIndex(id);
             if (0 <= index && index < dense.length && dense[index] != NOT_FOUND) {
@@ -503,7 +488,7 @@ public class NativeArray extends ScriptableObject implements List {
 
     @Override
     protected boolean defineOwnProperty(
-            Context cx, Object id, ScriptableObject desc, boolean checkValid) {
+            Context cx, Object id, DescriptorInfo desc, boolean checkValid) {
         long index = toArrayIndex(id);
         if (index >= length) {
             length = index + 1;
@@ -709,9 +694,7 @@ public class NativeArray extends ScriptableObject implements List {
         }
 
         Object iteratorProp = ScriptableObject.getProperty(items, SymbolKey.ITERATOR);
-        if (!(items instanceof NativeArray)
-                && (iteratorProp != Scriptable.NOT_FOUND)
-                && !Undefined.isUndefined(iteratorProp)) {
+        if ((iteratorProp != Scriptable.NOT_FOUND) && !Undefined.isUndefined(iteratorProp)) {
             final Object iterator = ScriptRuntime.callIterator(items, cx, scope);
             if (!Undefined.isUndefined(iterator)) {
                 final Scriptable result =
@@ -755,9 +738,9 @@ public class NativeArray extends ScriptableObject implements List {
                 callConstructorOrCreateArray(cx, scope, thisObj, args.length, true);
 
         if (cx.getLanguageVersion() >= Context.VERSION_ES6 && result instanceof ScriptableObject) {
-            ScriptableObject desc = ScriptableObject.buildDataDescriptor(result, null, EMPTY);
+            var desc = ScriptableObject.buildDataDescriptor(null, EMPTY);
             for (int i = 0; i < args.length; i++) {
-                desc.put("value", desc, args[i]);
+                desc.value = args[i];
                 ((ScriptableObject) result).defineOwnProperty(cx, i, desc);
             }
         } else {
@@ -944,7 +927,7 @@ public class NativeArray extends ScriptableObject implements List {
         }
     }
 
-    private static Object getElem(Context cx, Scriptable target, long index) {
+    static Object getElem(Context cx, Scriptable target, long index) {
         Object elem = getRawElem(target, index);
         return (elem != Scriptable.NOT_FOUND ? elem : Undefined.instance);
     }
@@ -2574,16 +2557,16 @@ public class NativeArray extends ScriptableObject implements List {
      */
     private Object[] dense;
 
-    /** True if all numeric properties are stored in <code>dense</code>. */
+    /** True if all numeric properties are stored in {@code dense}. */
     private boolean denseOnly;
 
-    /** The maximum size of <code>dense</code> that will be allocated initially. */
+    /** The maximum size of {@code dense} that will be allocated initially. */
     private static int maximumInitialCapacity = 10000;
 
-    /** The default capacity for <code>dense</code>. */
+    /** The default capacity for {@code dense}. */
     private static final int DEFAULT_INITIAL_CAPACITY = 10;
 
-    /** The factor to grow <code>dense</code> by. */
+    /** The factor to grow {@code dense} by. */
     private static final double GROW_FACTOR = 1.5;
 
     private static final int MAX_PRE_GROW_SIZE = (int) (Integer.MAX_VALUE / GROW_FACTOR);

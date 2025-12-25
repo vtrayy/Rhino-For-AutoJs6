@@ -83,8 +83,7 @@ public class BaseFunction extends ScriptableObject implements Function {
             String name,
             int length,
             SerializableCallable target) {
-        constructor.definePrototypeMethod(
-                scope, name, length, null, target, DONTENUM, DONTENUM | READONLY);
+        constructor.definePrototypeMethod(scope, name, length, target);
     }
 
     private static void defKnownBuiltInOnProto(
@@ -119,6 +118,7 @@ public class BaseFunction extends ScriptableObject implements Function {
 
     static Object initAsGeneratorFunction(Scriptable scope, boolean sealed) {
         var proto = new NativeObject();
+        Scriptable top = ScriptableObject.getTopLevelScope(scope);
 
         var function = (Scriptable) ScriptableObject.getProperty(scope, FUNCTION_CLASS);
         var functionProto =
@@ -126,8 +126,10 @@ public class BaseFunction extends ScriptableObject implements Function {
         proto.setPrototype(functionProto);
 
         var iterator = (Scriptable) ScriptableObject.getProperty(scope, "Iterator");
-        var iteratorPrototype = ScriptableObject.getProperty(iterator, PROTOTYPE_PROPERTY_NAME);
-        ScriptableObject.putProperty(proto, PROTOTYPE_PROPERTY_NAME, iteratorPrototype);
+        ScriptableObject.putProperty(
+                proto,
+                PROTOTYPE_PROPERTY_NAME,
+                ScriptableObject.getTopScopeValue(top, ES6Generator.GENERATOR_TAG));
 
         LambdaConstructor ctor =
                 new LambdaConstructor(
@@ -138,11 +140,12 @@ public class BaseFunction extends ScriptableObject implements Function {
                         BaseFunction::js_gen_constructorCall,
                         BaseFunction::js_gen_constructor);
 
-        proto.defineProperty("constructor", ctor, DONTENUM);
+        proto.defineProperty("constructor", ctor, READONLY | DONTENUM);
 
         // Function.prototype attributes: see ECMA 15.3.3.1
         ctor.setPrototypePropertyAttributes(DONTENUM | READONLY | PERMANENT);
 
+        proto.defineProperty(SymbolKey.TO_STRING_TAG, "GeneratorFunction", READONLY | DONTENUM);
         ScriptableObject.putProperty(scope, GENERATOR_FUNCTION_CLASS, ctor);
         // Function.prototype attributes: see ECMA 15.3.3.1
         // The "GeneratorFunction" name actually never appears in the global scope.
@@ -335,8 +338,7 @@ public class BaseFunction extends ScriptableObject implements Function {
      * Gets the value returned by calling the typeof operator on this object.
      *
      * @see ScriptableObject#getTypeOf()
-     * @return "function" or "undefined" if {@link #avoidObjectDetection()} returns <code>true
-     *     </code>
+     * @return "function" or "undefined" if {@link #avoidObjectDetection()} returns {@code true}
      */
     @Override
     public String getTypeOf() {
@@ -387,7 +389,7 @@ public class BaseFunction extends ScriptableObject implements Function {
         Object protoProp = null;
         if (thisObj instanceof BoundFunction)
             protoProp =
-                    ((NativeFunction) ((BoundFunction) thisObj).getTargetFunction())
+                    ((JSFunction) ((BoundFunction) thisObj).getTargetFunction())
                             .getPrototypeProperty();
         else {
             protoProp = ScriptableObject.getProperty(thisObj, PROTOTYPE_PROPERTY_NAME);
@@ -549,12 +551,7 @@ public class BaseFunction extends ScriptableObject implements Function {
         }
 
         Scriptable result = createObject(cx, scope);
-        if (result != null) {
-            Object val = call(cx, scope, result, args);
-            if (val instanceof Scriptable) {
-                result = (Scriptable) val;
-            }
-        } else {
+        if (result == null) {
             Object val = call(cx, scope, null, args);
             if (!(val instanceof Scriptable)) {
                 // It is program error not to return Scriptable from
@@ -578,16 +575,21 @@ public class BaseFunction extends ScriptableObject implements Function {
                     result.setParentScope(parent);
                 }
             }
+        } else {
+            Object val = call(cx, scope, result, args);
+            if (val instanceof Scriptable) {
+                result = (Scriptable) val;
+            }
         }
         return result;
     }
 
     /**
      * Creates new script object. The default implementation of {@link #construct} uses this method
-     * to to get the value for <code>thisObj</code> argument when invoking {@link #call}. The method
-     * is allowed to return <code>null</code> to indicate that {@link #call} will create a new
-     * object itself. In this case {@link #construct} will set scope and prototype on the result
-     * {@link #call} unless they are already set.
+     * to to get the value for {@code thisObj} argument when invoking {@link #call}. The method is
+     * allowed to return {@code null} to indicate that {@link #call} will create a new object
+     * itself. In this case {@link #construct} will set scope and prototype on the result {@link
+     * #call} unless they are already set.
      */
     public Scriptable createObject(Context cx, Scriptable scope) {
         Scriptable newInstance = new NativeObject();
@@ -654,8 +656,7 @@ public class BaseFunction extends ScriptableObject implements Function {
     }
 
     protected boolean hasPrototypeProperty() {
-        return (prototypeProperty != null && prototypeProperty != UniqueTag.NOT_FOUND)
-                || this instanceof NativeFunction;
+        return prototypeProperty != null && prototypeProperty != UniqueTag.NOT_FOUND;
     }
 
     public Object getPrototypeProperty() {
@@ -688,7 +689,21 @@ public class BaseFunction extends ScriptableObject implements Function {
         // wacky case of a user defining a function Object(), we don't
         // get an infinite loop trying to find the prototype.
         prototypeProperty = obj;
-        Scriptable proto = getObjectPrototype(this);
+        Scriptable proto;
+        if (isGeneratorFunction()) {
+            // For generator functions, the .prototype property's [[Prototype]]
+            // should be %GeneratorPrototype%, not Object.prototype
+            Scriptable top = ScriptableObject.getTopLevelScope(scope);
+            Object generatorProto =
+                    ScriptableObject.getTopScopeValue(top, ES6Generator.GENERATOR_TAG);
+            if (generatorProto instanceof Scriptable) {
+                proto = (Scriptable) generatorProto;
+            } else {
+                proto = getObjectPrototype(this); // fallback
+            }
+        } else {
+            proto = getObjectPrototype(this);
+        }
         if (proto != obj) {
             // not the one we just made, it must remain grounded
             obj.setPrototype(proto);
@@ -712,7 +727,15 @@ public class BaseFunction extends ScriptableObject implements Function {
         }
         Context cx = Context.getContext();
         NativeCall activation = ScriptRuntime.findFunctionActivation(cx, this);
-        return (activation == null) ? null : activation.get("arguments", activation);
+        // return (activation == null) ? null : activation.get("arguments", activation);
+        if (activation == null) {
+            return null;
+        }
+        Object arguments = activation.get("arguments", activation);
+        if (arguments instanceof Arguments && cx.getLanguageVersion() >= Context.VERSION_ES6) {
+            return new Arguments.ReadonlyArguments((Arguments) arguments, cx);
+        }
+        return arguments;
     }
 
     private static Scriptable jsConstructor(

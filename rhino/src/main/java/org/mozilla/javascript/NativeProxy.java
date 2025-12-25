@@ -16,7 +16,7 @@ import java.util.Objects;
  *
  * @author Ronald Brill
  */
-final class NativeProxy extends ScriptableObject implements Callable, Constructable {
+class NativeProxy extends ScriptableObject {
     private static final long serialVersionUID = 6676871870513494844L;
 
     private static final String PROXY_TAG = "Proxy";
@@ -78,8 +78,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                     }
                 };
 
-        constructor.defineConstructorMethod(
-                scope, "revocable", 2, NativeProxy::revocable, DONTENUM, DONTENUM | READONLY);
+        constructor.defineConstructorMethod(scope, "revocable", 2, NativeProxy::revocable);
         if (sealed) {
             constructor.sealObject();
         }
@@ -101,41 +100,6 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
     public String getClassName() {
         ScriptableObject target = getTargetThrowIfRevoked();
         return target.getClassName();
-    }
-
-    /**
-     * see <a
-     * href="https://262.ecma-international.org/12.0/#sec-proxy-object-internal-methods-and-internal-slots-construct-argumentslist-newtarget">10.5.13
-     * [[Construct]] (argumentsList, newTarget)</a>
-     */
-    @Override
-    public Scriptable construct(Context cx, Scriptable scope, Object[] args) {
-        /*
-         * 1. Let handler be O.[[ProxyHandler]].
-         * 2. If handler is null, throw a TypeError exception.
-         * 3. Assert: Type(handler) is Object.
-         * 4. Let target be O.[[ProxyTarget]].
-         * 5. Assert: IsConstructor(target) is true.
-         * 6. Let trap be ? GetMethod(handler, "construct").
-         * 7. If trap is undefined, then
-         *     a. Return ? Construct(target, argumentsList, newTarget).
-         * 8. Let argArray be ! CreateArrayFromList(argumentsList).
-         * 9. Let newObj be ? Call(trap, handler, « target, argArray, newTarget »).
-         * 10. If Type(newObj) is not Object, throw a TypeError exception.
-         * 11. Return newObj.
-         */
-        ScriptableObject target = getTargetThrowIfRevoked();
-
-        Callable trap = getTrap(TRAP_CONSTRUCT);
-        if (trap != null) {
-            Object result = callTrap(trap, new Object[] {target, args, this});
-            if (!(result instanceof Scriptable) || ScriptRuntime.isSymbol(result)) {
-                throw ScriptRuntime.typeError("Constructor trap has to return a scriptable.");
-            }
-            return (ScriptableObject) result;
-        }
-
-        return ((Constructable) target).construct(cx, scope, args);
     }
 
     /**
@@ -165,17 +129,16 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_HAS);
+        Function trap = getTrap(TRAP_HAS);
         if (trap != null) {
 
             boolean booleanTrapResult =
                     ScriptRuntime.toBoolean(callTrap(trap, new Object[] {target, name}));
             if (!booleanTrapResult) {
-                ScriptableObject targetDesc =
+                DescriptorInfo targetDesc =
                         target.getOwnPropertyDescriptor(Context.getContext(), name);
                 if (targetDesc != null) {
-                    if (Boolean.FALSE.equals(targetDesc.get("configurable"))
-                            || !target.isExtensible()) {
+                    if (targetDesc.isConfigurable(false) || !target.isExtensible()) {
                         throw ScriptRuntime.typeError(
                                 "proxy can't report an existing own property '"
                                         + name
@@ -219,17 +182,16 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_HAS);
+        Function trap = getTrap(TRAP_HAS);
         if (trap != null) {
             boolean booleanTrapResult =
                     ScriptRuntime.toBoolean(
                             callTrap(trap, new Object[] {target, ScriptRuntime.toString(index)}));
             if (!booleanTrapResult) {
-                ScriptableObject targetDesc =
+                DescriptorInfo targetDesc =
                         target.getOwnPropertyDescriptor(Context.getContext(), index);
                 if (targetDesc != null) {
-                    if (Boolean.FALSE.equals(targetDesc.get("configurable"))
-                            || !target.isExtensible()) {
+                    if (targetDesc.isConfigurable(false) || !target.isExtensible()) {
                         throw ScriptRuntime.typeError(
                                 "proxy can't check an existing property ' + name + ' existance on an not configurable or not extensible object");
                     }
@@ -254,16 +216,15 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
     public boolean has(Symbol key, Scriptable start) {
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_HAS);
+        Function trap = getTrap(TRAP_HAS);
         if (trap != null) {
             boolean booleanTrapResult =
                     ScriptRuntime.toBoolean(callTrap(trap, new Object[] {target, key}));
             if (!booleanTrapResult) {
-                ScriptableObject targetDesc =
+                DescriptorInfo targetDesc =
                         target.getOwnPropertyDescriptor(Context.getContext(), key);
                 if (targetDesc != null) {
-                    if (Boolean.FALSE.equals(targetDesc.get("configurable"))
-                            || !target.isExtensible()) {
+                    if (targetDesc.isConfigurable(false) || !target.isExtensible()) {
                         throw ScriptRuntime.typeError(
                                 "proxy can't check an existing property ' + name + ' existance on an not configurable or not extensible object");
                     }
@@ -325,7 +286,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
         */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_OWN_KEYS);
+        Function trap = getTrap(TRAP_OWN_KEYS);
         if (trap != null) {
             Object res = callTrap(trap, new Object[] {target});
             if (!(res instanceof Scriptable)) {
@@ -362,8 +323,8 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
             ArrayList<Object> targetConfigurableKeys = new ArrayList<>();
             ArrayList<Object> targetNonconfigurableKeys = new ArrayList<>();
             for (Object targetKey : targetKeys) {
-                ScriptableObject desc = target.getOwnPropertyDescriptor(cx, targetKey);
-                if (desc != null && Boolean.FALSE.equals(desc.get("configurable"))) {
+                DescriptorInfo desc = target.getOwnPropertyDescriptor(cx, targetKey);
+                if (desc != null && desc.isConfigurable(false)) {
                     targetNonconfigurableKeys.add(targetKey);
                 } else {
                     targetConfigurableKeys.add(targetKey);
@@ -432,24 +393,19 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_GET);
+        Function trap = getTrap(TRAP_GET);
         if (trap != null) {
             Object trapResult = callTrap(trap, new Object[] {target, name, this});
 
-            ScriptableObject targetDesc =
-                    target.getOwnPropertyDescriptor(Context.getContext(), name);
-            if (targetDesc != null
-                    && !Undefined.isUndefined(targetDesc)
-                    && Boolean.FALSE.equals(targetDesc.get("configurable"))) {
-                if (ScriptableObject.isDataDescriptor(targetDesc)
-                        && Boolean.FALSE.equals(targetDesc.get("writable"))) {
-                    if (!Objects.equals(trapResult, targetDesc.get("value"))) {
+            DescriptorInfo targetDesc = target.getOwnPropertyDescriptor(Context.getContext(), name);
+            if (targetDesc != null && targetDesc.isConfigurable(false)) {
+                if (targetDesc.isDataDescriptor() && targetDesc.isWritable(false)) {
+                    if (!Objects.equals(trapResult, targetDesc.value)) {
                         throw ScriptRuntime.typeError(
                                 "proxy get has to return the same value as the plain call");
                     }
                 }
-                if (ScriptableObject.isAccessorDescriptor(targetDesc)
-                        && Undefined.isUndefined(targetDesc.get("get"))) {
+                if (targetDesc.isAccessorDescriptor() && Undefined.isUndefined(targetDesc.getter)) {
                     if (!Undefined.isUndefined(trapResult)) {
                         throw ScriptRuntime.typeError(
                                 "proxy get has to return the same value as the plain call");
@@ -492,25 +448,23 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_GET);
+        Function trap = getTrap(TRAP_GET);
         if (trap != null) {
             Object trapResult =
                     callTrap(trap, new Object[] {target, ScriptRuntime.toString(index), this});
 
-            ScriptableObject targetDesc =
+            DescriptorInfo targetDesc =
                     target.getOwnPropertyDescriptor(Context.getContext(), index);
             if (targetDesc != null
                     && !Undefined.isUndefined(targetDesc)
-                    && Boolean.FALSE.equals(targetDesc.get("configurable"))) {
-                if (ScriptableObject.isDataDescriptor(targetDesc)
-                        && Boolean.FALSE.equals(targetDesc.get("writable"))) {
-                    if (!Objects.equals(trapResult, targetDesc.get("value"))) {
+                    && targetDesc.isConfigurable(false)) {
+                if (targetDesc.isDataDescriptor() && targetDesc.isWritable(false)) {
+                    if (!Objects.equals(trapResult, targetDesc.value)) {
                         throw ScriptRuntime.typeError(
                                 "proxy get has to return the same value as the plain call");
                     }
                 }
-                if (ScriptableObject.isAccessorDescriptor(targetDesc)
-                        && Undefined.isUndefined(targetDesc.get("get"))) {
+                if (targetDesc.isAccessorDescriptor() && Undefined.isUndefined(targetDesc.getter)) {
                     if (!Undefined.isUndefined(trapResult)) {
                         throw ScriptRuntime.typeError(
                                 "proxy get has to return the same value as the plain call");
@@ -553,24 +507,21 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_GET);
+        Function trap = getTrap(TRAP_GET);
         if (trap != null) {
             Object trapResult = callTrap(trap, new Object[] {target, key, this});
 
-            ScriptableObject targetDesc =
-                    target.getOwnPropertyDescriptor(Context.getContext(), key);
+            DescriptorInfo targetDesc = target.getOwnPropertyDescriptor(Context.getContext(), key);
             if (targetDesc != null
                     && !Undefined.isUndefined(targetDesc)
-                    && Boolean.FALSE.equals(targetDesc.get("configurable"))) {
-                if (ScriptableObject.isDataDescriptor(targetDesc)
-                        && Boolean.FALSE.equals(targetDesc.get("writable"))) {
-                    if (!Objects.equals(trapResult, targetDesc.get("value"))) {
+                    && targetDesc.isConfigurable(false)) {
+                if (targetDesc.isDataDescriptor() && targetDesc.isWritable(false)) {
+                    if (!Objects.equals(trapResult, targetDesc.value)) {
                         throw ScriptRuntime.typeError(
                                 "proxy get has to return the same value as the plain call");
                     }
                 }
-                if (ScriptableObject.isAccessorDescriptor(targetDesc)
-                        && Undefined.isUndefined(targetDesc.get("get"))) {
+                if (targetDesc.isAccessorDescriptor() && Undefined.isUndefined(targetDesc.getter)) {
                     if (!Undefined.isUndefined(trapResult)) {
                         throw ScriptRuntime.typeError(
                                 "proxy get has to return the same value as the plain call");
@@ -615,7 +566,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_SET);
+        Function trap = getTrap(TRAP_SET);
         if (trap != null) {
             boolean booleanTrapResult =
                     ScriptRuntime.toBoolean(callTrap(trap, new Object[] {target, name, value}));
@@ -623,20 +574,17 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                 return; // false
             }
 
-            ScriptableObject targetDesc =
-                    target.getOwnPropertyDescriptor(Context.getContext(), name);
+            DescriptorInfo targetDesc = target.getOwnPropertyDescriptor(Context.getContext(), name);
             if (targetDesc != null
                     && !Undefined.isUndefined(targetDesc)
-                    && Boolean.FALSE.equals(targetDesc.get("configurable"))) {
-                if (ScriptableObject.isDataDescriptor(targetDesc)
-                        && Boolean.FALSE.equals(targetDesc.get("writable"))) {
-                    if (!Objects.equals(value, targetDesc.get("value"))) {
+                    && targetDesc.isConfigurable(false)) {
+                if (targetDesc.isDataDescriptor() && targetDesc.isWritable(false)) {
+                    if (!Objects.equals(value, targetDesc.value)) {
                         throw ScriptRuntime.typeError(
                                 "proxy set has to use the same value as the plain call");
                     }
                 }
-                if (ScriptableObject.isAccessorDescriptor(targetDesc)
-                        && Undefined.isUndefined(targetDesc.get("set"))) {
+                if (targetDesc.isAccessorDescriptor() && Undefined.isUndefined(targetDesc.setter)) {
                     throw ScriptRuntime.typeError("proxy set has to be available");
                 }
             }
@@ -677,7 +625,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_SET);
+        Function trap = getTrap(TRAP_SET);
         if (trap != null) {
             boolean booleanTrapResult =
                     ScriptRuntime.toBoolean(
@@ -688,20 +636,18 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                 return; // false
             }
 
-            ScriptableObject targetDesc =
+            DescriptorInfo targetDesc =
                     target.getOwnPropertyDescriptor(Context.getContext(), index);
             if (targetDesc != null
                     && !Undefined.isUndefined(targetDesc)
-                    && Boolean.FALSE.equals(targetDesc.get("configurable"))) {
-                if (ScriptableObject.isDataDescriptor(targetDesc)
-                        && Boolean.FALSE.equals(targetDesc.get("writable"))) {
-                    if (!Objects.equals(value, targetDesc.get("value"))) {
+                    && targetDesc.isConfigurable(false)) {
+                if (targetDesc.isDataDescriptor() && targetDesc.isWritable(false)) {
+                    if (!Objects.equals(value, targetDesc.value)) {
                         throw ScriptRuntime.typeError(
                                 "proxy set has to use the same value as the plain call");
                     }
                 }
-                if (ScriptableObject.isAccessorDescriptor(targetDesc)
-                        && Undefined.isUndefined(targetDesc.get("set"))) {
+                if (targetDesc.isAccessorDescriptor() && Undefined.isUndefined(targetDesc.setter)) {
                     throw ScriptRuntime.typeError("proxy set has to be available");
                 }
             }
@@ -742,7 +688,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_SET);
+        Function trap = getTrap(TRAP_SET);
         if (trap != null) {
             boolean booleanTrapResult =
                     ScriptRuntime.toBoolean(callTrap(trap, new Object[] {target, key, value}));
@@ -750,20 +696,17 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                 return; // false
             }
 
-            ScriptableObject targetDesc =
-                    target.getOwnPropertyDescriptor(Context.getContext(), key);
+            DescriptorInfo targetDesc = target.getOwnPropertyDescriptor(Context.getContext(), key);
             if (targetDesc != null
                     && !Undefined.isUndefined(targetDesc)
-                    && Boolean.FALSE.equals(targetDesc.get("configurable"))) {
-                if (ScriptableObject.isDataDescriptor(targetDesc)
-                        && Boolean.FALSE.equals(targetDesc.get("writable"))) {
-                    if (!Objects.equals(value, targetDesc.get("value"))) {
+                    && targetDesc.isConfigurable(false)) {
+                if (targetDesc.isDataDescriptor() && targetDesc.isWritable(false)) {
+                    if (!Objects.equals(value, targetDesc.value)) {
                         throw ScriptRuntime.typeError(
                                 "proxy set has to use the same value as the plain call");
                     }
                 }
-                if (ScriptableObject.isAccessorDescriptor(targetDesc)
-                        && Undefined.isUndefined(targetDesc.get("set"))) {
+                if (targetDesc.isAccessorDescriptor() && Undefined.isUndefined(targetDesc.setter)) {
                     throw ScriptRuntime.typeError("proxy set has to be available");
                 }
             }
@@ -804,7 +747,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_DELETE_PROPERTY);
+        Function trap = getTrap(TRAP_DELETE_PROPERTY);
         if (trap != null) {
             boolean booleanTrapResult =
                     ScriptRuntime.toBoolean(callTrap(trap, new Object[] {target, name}));
@@ -812,12 +755,11 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                 return; // false
             }
 
-            ScriptableObject targetDesc =
-                    target.getOwnPropertyDescriptor(Context.getContext(), name);
+            DescriptorInfo targetDesc = target.getOwnPropertyDescriptor(Context.getContext(), name);
             if (targetDesc == null) {
                 return; // true
             }
-            if (Boolean.FALSE.equals(targetDesc.get("configurable")) || !target.isExtensible()) {
+            if (targetDesc.isConfigurable(false) || !target.isExtensible()) {
                 throw ScriptRuntime.typeError(
                         "proxy can't delete an existing own property ' + name + ' on an not configurable or not extensible object");
             }
@@ -855,7 +797,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_DELETE_PROPERTY);
+        Function trap = getTrap(TRAP_DELETE_PROPERTY);
         if (trap != null) {
             boolean booleanTrapResult =
                     ScriptRuntime.toBoolean(
@@ -864,12 +806,12 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                 return; // false
             }
 
-            ScriptableObject targetDesc =
+            DescriptorInfo targetDesc =
                     target.getOwnPropertyDescriptor(Context.getContext(), index);
             if (targetDesc == null) {
                 return; // true
             }
-            if (Boolean.FALSE.equals(targetDesc.get("configurable")) || !target.isExtensible()) {
+            if (targetDesc.isConfigurable(false) || !target.isExtensible()) {
                 throw ScriptRuntime.typeError(
                         "proxy can't delete an existing own property ' + name + ' on an not configurable or not extensible object");
             }
@@ -907,7 +849,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_DELETE_PROPERTY);
+        Function trap = getTrap(TRAP_DELETE_PROPERTY);
         if (trap != null) {
             boolean booleanTrapResult =
                     ScriptRuntime.toBoolean(callTrap(trap, new Object[] {target, key}));
@@ -915,12 +857,11 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                 return; // false
             }
 
-            ScriptableObject targetDesc =
-                    target.getOwnPropertyDescriptor(Context.getContext(), key);
+            DescriptorInfo targetDesc = target.getOwnPropertyDescriptor(Context.getContext(), key);
             if (targetDesc == null) {
                 return; // true
             }
-            if (Boolean.FALSE.equals(targetDesc.get("configurable")) || !target.isExtensible()) {
+            if (targetDesc.isConfigurable(false) || !target.isExtensible()) {
                 throw ScriptRuntime.typeError(
                         "proxy can't delete an existing own property ' + name + ' on an not configurable or not extensible object");
             }
@@ -938,7 +879,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
      * [[GetOwnProperty]] (P)</a>
      */
     @Override
-    public ScriptableObject getOwnPropertyDescriptor(Context cx, Object id) {
+    public DescriptorInfo getOwnPropertyDescriptor(Context cx, Object id) {
         /*
          * 1. Assert: IsPropertyKey(P) is true.
          * 2. Let handler be O.[[ProxyHandler]].
@@ -971,7 +912,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_GET_OWN_PROPERTY_DESCRIPTOR);
+        Function trap = getTrap(TRAP_GET_OWN_PROPERTY_DESCRIPTOR);
         if (trap != null) {
             Object trapResultObj = callTrap(trap, new Object[] {target, id});
             if (!Undefined.isUndefined(trapResultObj)
@@ -981,20 +922,17 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                         "getOwnPropertyDescriptor trap has to return undefined or an object");
             }
 
-            ScriptableObject targetDesc;
-            if (ScriptRuntime.isSymbol(id)) {
-                targetDesc = target.getOwnPropertyDescriptor(cx, id);
-            } else {
-                targetDesc = target.getOwnPropertyDescriptor(cx, ScriptRuntime.toString(id));
-            }
+            var targetDesc =
+                    ScriptRuntime.isSymbol(id)
+                            ? target.getOwnPropertyDescriptor(cx, id)
+                            : target.getOwnPropertyDescriptor(cx, ScriptRuntime.toString(id));
 
             if (Undefined.isUndefined(trapResultObj)) {
                 if (Undefined.isUndefined(targetDesc)) {
                     return null;
                 }
 
-                if (Boolean.FALSE.equals(targetDesc.get("configurable"))
-                        || !target.isExtensible()) {
+                if (targetDesc.isConfigurable(false) || !target.isExtensible()) {
                     throw ScriptRuntime.typeError(
                             "proxy can't report an existing own property '"
                                     + id
@@ -1013,8 +951,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                                 getProperty(trapResult, "writable"),
                                 getProperty(trapResult, "configurable"));
 
-                ScriptableObject desc =
-                        ScriptableObject.buildDataDescriptor(target, value, attributes);
+                var desc = ScriptableObject.buildDataDescriptor(value, attributes);
                 return desc;
             }
             return null;
@@ -1033,7 +970,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
      * [[DefineOwnProperty]] (P, Desc)</a>
      */
     @Override
-    public boolean defineOwnProperty(Context cx, Object id, ScriptableObject desc) {
+    public boolean defineOwnProperty(Context cx, Object id, DescriptorInfo desc) {
         /*
          * 1. Assert: IsPropertyKey(P) is true.
          * 2. Let handler be O.[[ProxyHandler]].
@@ -1063,20 +1000,23 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_DEFINE_PROPERTY);
+        Function trap = getTrap(TRAP_DEFINE_PROPERTY);
         if (trap != null) {
             boolean booleanTrapResult =
-                    ScriptRuntime.toBoolean(callTrap(trap, new Object[] {target, id, desc}));
+                    ScriptRuntime.toBoolean(
+                            callTrap(
+                                    trap,
+                                    new Object[] {
+                                        target, id, desc.toObject(trap.getDeclarationScope())
+                                    }));
             if (!booleanTrapResult) {
                 return false;
             }
 
-            ScriptableObject targetDesc = target.getOwnPropertyDescriptor(Context.getContext(), id);
+            DescriptorInfo targetDesc = target.getOwnPropertyDescriptor(Context.getContext(), id);
             boolean extensibleTarget = target.isExtensible();
 
-            boolean settingConfigFalse =
-                    Boolean.TRUE.equals(ScriptableObject.hasProperty(desc, "configurable"))
-                            && Boolean.FALSE.equals(desc.get("configurable"));
+            boolean settingConfigFalse = desc.isConfigurable(false);
 
             if (targetDesc == null) {
                 if (!extensibleTarget || settingConfigFalse) {
@@ -1090,16 +1030,15 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
                             "proxy can't define an incompatible property descriptor");
                 }
 
-                if (settingConfigFalse && Boolean.TRUE.equals(targetDesc.get("configurable"))) {
+                if (settingConfigFalse && targetDesc.isConfigurable()) {
                     throw ScriptRuntime.typeError(
                             "proxy can't define an incompatible property descriptor");
                 }
 
-                if (ScriptableObject.isDataDescriptor(targetDesc)
-                        && Boolean.FALSE.equals(targetDesc.get("configurable"))
-                        && Boolean.TRUE.equals(targetDesc.get("writable"))) {
-                    if (Boolean.TRUE.equals(ScriptableObject.hasProperty(desc, "writable"))
-                            && Boolean.FALSE.equals(desc.get("writable"))) {
+                if (targetDesc.isDataDescriptor()
+                        && targetDesc.isConfigurable(false)
+                        && targetDesc.isWritable()) {
+                    if (desc.isWritable(false)) {
                         throw ScriptRuntime.typeError(
                                 "proxy can't define an incompatible property descriptor");
                     }
@@ -1133,7 +1072,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_IS_EXTENSIBLE);
+        Function trap = getTrap(TRAP_IS_EXTENSIBLE);
         if (trap == null) {
             return target.isExtensible();
         }
@@ -1169,7 +1108,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_PREVENT_EXTENSIONS);
+        Function trap = getTrap(TRAP_PREVENT_EXTENSIONS);
         if (trap == null) {
             return target.preventExtensions();
         }
@@ -1211,7 +1150,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_GET_PROTOTYPE_OF);
+        Function trap = getTrap(TRAP_GET_PROTOTYPE_OF);
         if (trap != null) {
             Object handlerProto = callTrap(trap, new Object[] {target});
 
@@ -1268,7 +1207,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
          */
         ScriptableObject target = getTargetThrowIfRevoked();
 
-        Callable trap = getTrap(TRAP_SET_PROTOTYPE_OF);
+        Function trap = getTrap(TRAP_SET_PROTOTYPE_OF);
         if (trap != null) {
             boolean booleanTrapResult =
                     ScriptRuntime.toBoolean(callTrap(trap, new Object[] {target, prototype}));
@@ -1285,37 +1224,6 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
         target.setPrototype(prototype);
     }
 
-    /**
-     * see <a
-     * href="https://262.ecma-international.org/12.0/#sec-proxy-object-internal-methods-and-internal-slots-call-thisargument-argumentslist">10.5.12
-     * [[Call]] (thisArgument, argumentsList)</a>
-     */
-    @Override
-    public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
-        /*
-         * 1. Let handler be O.[[ProxyHandler]].
-         * 2. If handler is null, throw a TypeError exception.
-         * 3. Assert: Type(handler) is Object.
-         * 4. Let target be O.[[ProxyTarget]].
-         * 5. Let trap be ? GetMethod(handler, "apply").
-         * 6. If trap is undefined, then
-         *     a. Return ? Call(target, thisArgument, argumentsList).
-         * 7. Let argArray be ! CreateArrayFromList(argumentsList).
-         * 8. Return ? Call(trap, handler, « target, thisArgument, argArray »).
-         */
-        ScriptableObject target = getTargetThrowIfRevoked();
-
-        Scriptable argumentsList = cx.newArray(scope, args);
-
-        Callable trap = getTrap(TRAP_APPLY);
-        if (trap != null) {
-            return callTrap(trap, new Object[] {target, thisObj, argumentsList});
-        }
-
-        return ScriptRuntime.applyOrCall(
-                true, cx, scope, target, new Object[] {thisObj, argumentsList});
-    }
-
     private static NativeProxy constructor(Context cx, Scriptable scope, Object[] args) {
         if (args.length < 2) {
             throw ScriptRuntime.typeErrorById(
@@ -1327,7 +1235,13 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
         ScriptableObject target = ensureScriptableObjectButNotSymbol(args[0]);
         ScriptableObject handler = ensureScriptableObjectButNotSymbol(args[1]);
 
-        NativeProxy proxy = new NativeProxy(target, handler);
+        NativeProxy proxy;
+        if (target instanceof Function) {
+            proxy = new NativeProxyFunction(target, handler);
+        } else {
+            proxy = new NativeProxy(target, handler);
+        }
+
         proxy.setPrototypeDirect(ScriptableObject.getClassPrototype(scope, PROXY_TAG));
         proxy.setParentScope(scope);
         return proxy;
@@ -1348,7 +1262,7 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
         return revocable;
     }
 
-    private Callable getTrap(String trapName) {
+    protected final Function getTrap(String trapName) {
         Object handlerProp = ScriptableObject.getProperty(handlerObj, trapName);
         if (Scriptable.NOT_FOUND == handlerProp) {
             return null;
@@ -1360,11 +1274,11 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
             throw ScriptRuntime.notFunctionError(handlerProp, trapName);
         }
 
-        return (Callable) handlerProp;
+        return (Function) handlerProp;
     }
 
-    private Object callTrap(Callable trap, Object[] args) {
-        return trap.call(Context.getContext(), handlerObj, handlerObj, args);
+    protected final Object callTrap(Function trap, Object[] args) {
+        return trap.call(Context.getContext(), trap.getDeclarationScope(), handlerObj, args);
     }
 
     ScriptableObject getTargetThrowIfRevoked() {
@@ -1372,5 +1286,88 @@ final class NativeProxy extends ScriptableObject implements Callable, Constructa
             throw ScriptRuntime.typeError("Illegal operation attempted on a revoked proxy");
         }
         return targetObj;
+    }
+
+    static class NativeProxyFunction extends NativeProxy implements Function {
+
+        NativeProxyFunction(ScriptableObject target, Scriptable handler) {
+            super(target, handler);
+        }
+
+        /**
+         * see <a href=
+         * "https://262.ecma-international.org/12.0/#sec-proxy-object-internal-methods-and-internal-slots-construct-argumentslist-newtarget">10.5.13
+         * [[Construct]] (argumentsList, newTarget)</a>
+         */
+        @Override
+        public Scriptable construct(Context cx, Scriptable scope, Object[] args) {
+            /*
+             * 1. Let handler be O.[[ProxyHandler]].
+             * 2. If handler is null, throw a TypeError exception.
+             * 3. Assert: Type(handler) is Object.
+             * 4. Let target be O.[[ProxyTarget]].
+             * 5. Assert: IsConstructor(target) is true.
+             * 6. Let trap be ? GetMethod(handler, "construct").
+             * 7. If trap is undefined, then
+             * a. Return ? Construct(target, argumentsList, newTarget).
+             * 8. Let argArray be ! CreateArrayFromList(argumentsList).
+             * 9. Let newObj be ? Call(trap, handler, « target, argArray, newTarget »).
+             * 10. If Type(newObj) is not Object, throw a TypeError exception.
+             * 11. Return newObj.
+             */
+            ScriptableObject target = getTargetThrowIfRevoked();
+
+            Function trap = getTrap(TRAP_CONSTRUCT);
+            if (trap != null) {
+                Object result = callTrap(trap, new Object[] {target, args, this});
+                if (!(result instanceof Scriptable) || ScriptRuntime.isSymbol(result)) {
+                    throw ScriptRuntime.typeError("Constructor trap has to return a scriptable.");
+                }
+                return (ScriptableObject) result;
+            }
+
+            return ((Constructable) target).construct(cx, scope, args);
+        }
+
+        /**
+         * see <a href=
+         * "https://262.ecma-international.org/12.0/#sec-proxy-object-internal-methods-and-internal-slots-call-thisargument-argumentslist">10.5.12
+         * [[Call]] (thisArgument, argumentsList)</a>
+         */
+        @Override
+        public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
+            /*
+             * 1. Let handler be O.[[ProxyHandler]].
+             * 2. If handler is null, throw a TypeError exception.
+             * 3. Assert: Type(handler) is Object.
+             * 4. Let target be O.[[ProxyTarget]].
+             * 5. Let trap be ? GetMethod(handler, "apply").
+             * 6. If trap is undefined, then
+             * a. Return ? Call(target, thisArgument, argumentsList).
+             * 7. Let argArray be ! CreateArrayFromList(argumentsList).
+             * 8. Return ? Call(trap, handler, « target, thisArgument, argArray »).
+             */
+            ScriptableObject target = getTargetThrowIfRevoked();
+
+            Scriptable argumentsList = cx.newArray(scope, args);
+
+            Function trap = getTrap(TRAP_APPLY);
+            if (trap != null) {
+                return callTrap(trap, new Object[] {target, thisObj, argumentsList});
+            }
+
+            return ScriptRuntime.applyOrCall(
+                    true, cx, scope, target, new Object[] {thisObj, argumentsList});
+        }
+
+        @Override
+        public Scriptable getDeclarationScope() {
+            ScriptableObject target = getTargetThrowIfRevoked();
+            if (target instanceof Function) {
+                return ((Function) target).getDeclarationScope();
+            }
+            Kit.codeBug();
+            return null;
+        }
     }
 }

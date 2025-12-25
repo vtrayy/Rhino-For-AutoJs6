@@ -436,7 +436,13 @@ public final class IRFactory {
         List<Integer> skipIndexes = null;
         for (int i = 0; i < elems.size(); ++i) {
             AstNode elem = elems.get(i);
-            if (elem.getType() != Token.EMPTY) {
+            if (elem.getType() == Token.DOTDOTDOT) {
+                Spread spread = (Spread) elem;
+                Node transformedSpreadNode = transform(spread);
+                array.addChildToBack(transformedSpreadNode);
+                array.putIntProp(
+                        Node.NUMBER_OF_SPREAD, array.getIntProp(Node.NUMBER_OF_SPREAD, 0) + 1);
+            } else if (elem.getType() != Token.EMPTY) {
                 array.addChildToBack(transform(elem));
             } else {
                 if (skipIndexes == null) {
@@ -651,12 +657,13 @@ public final class IRFactory {
             /* Process simple default parameters */
             List<Object> defaultParams = fn.getDefaultParams();
             if (defaultParams != null) {
+                Node paramInitBlock = null;
                 for (int i = defaultParams.size() - 1; i > 0; ) {
                     if (defaultParams.get(i) instanceof AstNode
                             && defaultParams.get(i - 1) instanceof String) {
                         AstNode rhs = (AstNode) defaultParams.get(i);
                         String name = (String) defaultParams.get(i - 1);
-                        body.addChildToFront(
+                        Node paramInit =
                                 createIf(
                                         createBinary(
                                                 Token.SHEQ,
@@ -672,9 +679,20 @@ public final class IRFactory {
                                                 body.getColumn()),
                                         null,
                                         body.getLineno(),
-                                        body.getColumn()));
+                                        body.getColumn());
+                        if (fn.isGenerator()) {
+                            if (paramInitBlock == null) {
+                                paramInitBlock = new Node(Token.BLOCK);
+                            }
+                            paramInitBlock.addChildToFront(paramInit);
+                        } else {
+                            body.addChildToFront(paramInit);
+                        }
                     }
                     i -= 2;
+                }
+                if (fn.isGenerator() && paramInitBlock != null) {
+                    fn.setGeneratorParamInitBlock(paramInitBlock);
                 }
             }
 
@@ -1050,13 +1068,13 @@ public final class IRFactory {
         Node pn = Node.newString("");
         for (AstNode elem : elems) {
             if (elem.getType() != Token.TEMPLATE_CHARS) {
-                pn = createBinary(Token.ADD, pn, transform(elem));
+                pn = createBinary(Token.STRING_CONCAT, pn, transform(elem));
             } else {
                 TemplateCharacters chars = (TemplateCharacters) elem;
                 // skip empty parts, e.g. `xx${expr}xx` where xx denotes the empty string
                 String value = chars.getValue();
                 if (value.length() > 0) {
-                    pn = createBinary(Token.ADD, pn, Node.newString(value));
+                    pn = createBinary(Token.STRING_CONCAT, pn, Node.newString(value));
                 }
             }
         }
@@ -1104,6 +1122,7 @@ public final class IRFactory {
             body.addChildToBack(transform((AstNode) kid));
         }
         node.removeChildren();
+
         Node children = body.getFirstChild();
         if (children != null) {
             node.addChildrenToBack(children);
@@ -1157,30 +1176,44 @@ public final class IRFactory {
         // instead of:
         //     goto labelDefault;
 
-        Node switchExpr = transform(node.getExpression());
-        node.addChildToBack(switchExpr);
+        Scope block = Scope.splitScope(node);
+        block.setLineColumnNumber(node.getLineno(), node.getColumn());
+        block.addChildToBack(node);
+        node.setParentScope(block);
 
-        Node block = new Node(Token.BLOCK, node, node.getLineno(), node.getColumn());
+        // Can't use pushScope/popScope here since splitScope moves the symbol table
+        // We set currentScope to 'node' (not 'block') so nested scopes can be pushed,
+        // since their parent pointers were set to 'node' during parsing. Variable resolution
+        // works correctly because it walks up the parentScope chain, where node.parentScope =
+        // block.
+        Scope savedScope = parser.currentScope;
+        parser.currentScope = node;
+        try {
+            Node switchExpr = transform(node.getExpression());
+            node.addChildToBack(switchExpr);
 
-        for (SwitchCase sc : node.getCases()) {
-            AstNode expr = sc.getExpression();
-            Node caseExpr = null;
+            for (SwitchCase sc : node.getCases()) {
+                AstNode expr = sc.getExpression();
+                Node caseExpr = null;
 
-            if (expr != null) {
-                caseExpr = transform(expr);
-            }
-
-            List<AstNode> stmts = sc.getStatements();
-            Node body = new Block();
-            if (stmts != null) {
-                for (AstNode kid : stmts) {
-                    body.addChildToBack(transform(kid));
+                if (expr != null) {
+                    caseExpr = transform(expr);
                 }
+
+                List<AstNode> stmts = sc.getStatements();
+                Node body = new Block();
+                if (stmts != null) {
+                    for (AstNode kid : stmts) {
+                        body.addChildToBack(transform(kid));
+                    }
+                }
+                addSwitchCase(block, caseExpr, body);
             }
-            addSwitchCase(block, caseExpr, body);
+            closeSwitch(block);
+            return block;
+        } finally {
+            parser.currentScope = savedScope;
         }
-        closeSwitch(block);
-        return block;
     }
 
     private Node transformThrow(ThrowStatement node) {
@@ -1196,22 +1229,61 @@ public final class IRFactory {
 
         Node catchBlocks = new Block();
         for (CatchClause cc : node.getCatchClauses()) {
-            Name varName = cc.getVarName();
+            AstNode varName = cc.getVarName();
             Node catchCond = null;
             Node varNameNode = null;
+            Scope catchBody = cc.getBody();
 
             if (varName != null) {
-                varNameNode = parser.createName(varName.getIdentifier());
+                if (varName instanceof Name) {
+                    // Simple identifier
+                    varNameNode = parser.createName(((Name) varName).getIdentifier());
 
-                AstNode ccc = cc.getCatchCondition();
-                if (ccc != null) {
-                    catchCond = transform(ccc);
-                } else {
+                    AstNode ccc = cc.getCatchCondition();
+                    if (ccc != null) {
+                        catchCond = transform(ccc);
+                    } else {
+                        catchCond = new EmptyExpression();
+                    }
+                } else if (varName instanceof org.mozilla.javascript.ast.ArrayLiteral
+                        || varName instanceof org.mozilla.javascript.ast.ObjectLiteral) {
+                    // Destructuring pattern. We basically replace:
+                    //   catch ( {message} ) { body }
+                    // into:
+                    //   catch ( $tempname ) { let {message} = $tempname; body }
+
+                    // The exception will be stored in the temp name
+                    String tempVarName = parser.currentScriptOrFn.getNextTempName();
+                    varNameNode = parser.createName(tempVarName);
+
+                    // The let statement will be used to do the destructuring
+                    VariableDeclaration letStatement = new VariableDeclaration();
+                    letStatement.setType(Token.LET);
+
+                    VariableInitializer letVar = new VariableInitializer();
+                    letStatement.addVariable(letVar);
+
+                    // LHS: the destructuring declaration
+                    letVar.setTarget(varName);
+
+                    // RHS: the temp name (which we need to wrap in a new name node)
+                    Name tempVarNameNode = new Name();
+                    tempVarNameNode.setIdentifier(tempVarName);
+                    letVar.setInitializer(tempVarNameNode);
+
+                    // Prepend the destructuring "let" to the catch body
+                    catchBody.addChildToFront(letStatement);
+
+                    // Our non-standard condition is not supported for destructuring (we throw an
+                    // error at parse time), so here we can simply force it to an empty expression
                     catchCond = new EmptyExpression();
+                } else {
+                    throw new IllegalArgumentException(
+                            "Unexpected catch parameter type: " + varName.getClass().getName());
                 }
             }
 
-            Node body = transform(cc.getBody());
+            Node body = transform(catchBody);
 
             catchBlocks.addChildToBack(
                     createCatch(varNameNode, catchCond, body, cc.getLineno(), cc.getColumn()));
@@ -2022,14 +2094,14 @@ public final class IRFactory {
         int type = Node.NON_SPECIALCALL;
         if (child.getType() == Token.NAME) {
             String name = child.getString();
-            if (name.equals("eval")) {
+            if ("eval".equals(name)) {
                 type = Node.SPECIALCALL_EVAL;
-            } else if (name.equals("With")) {
+            } else if ("With".equals(name)) {
                 type = Node.SPECIALCALL_WITH;
             }
         } else if (child.getType() == Token.GETPROP) {
             String name = child.getLastChild().getString();
-            if (name.equals("eval")) {
+            if ("eval".equals(name)) {
                 type = Node.SPECIALCALL_EVAL;
             }
         }
@@ -2239,7 +2311,7 @@ public final class IRFactory {
         Node nsNode = null;
         if (namespace != null) {
             // See 11.1.2 in ECMA 357
-            if (namespace.equals("*")) {
+            if ("*".equals(namespace)) {
                 nsNode = new Node(Token.NULL);
             } else {
                 nsNode = parser.createName(namespace);

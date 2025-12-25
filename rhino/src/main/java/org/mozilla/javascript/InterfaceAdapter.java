@@ -9,6 +9,7 @@ package org.mozilla.javascript;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
+import org.mozilla.javascript.lc.type.TypeInfo;
 
 /**
  * Adapter to use JS function as implementation of Java interfaces with single method or multiple
@@ -21,8 +22,8 @@ public class InterfaceAdapter {
      * Make glue object implementing interface cl that will call the supplied JS function when
      * called. Only interfaces were all methods have the same signature is supported.
      *
-     * @return The glue object or null if <code>cl</code> is not interface or has methods with
-     *     different signatures.
+     * @return The glue object or null if {@code cl} is not interface or has methods with different
+     *     signatures.
      */
     static Object create(Context cx, Class<?> cl, ScriptableObject object) {
         if (!cl.isInterface()) throw new IllegalArgumentException();
@@ -83,9 +84,9 @@ public class InterfaceAdapter {
      * @return true, if the function
      */
     private static boolean isFunctionalMethodCandidate(Method method) {
-        if (method.getName().equals("equals")
-                || method.getName().equals("hashCode")
-                || method.getName().equals("toString")) {
+        if ("equals".equals(method.getName())
+                || "hashCode".equals(method.getName())
+                || "toString".equals(method.getName())) {
             // it should be safe to ignore them as there is also a special
             // case for these methods in VMBridge_jdk18.newInterfaceProxy
             return false;
@@ -148,11 +149,11 @@ public class InterfaceAdapter {
                 Object arg = args[i];
                 // neutralize wrap factory java primitive wrap feature
                 if (!(arg instanceof String || arg instanceof Number || arg instanceof Boolean)) {
-                    args[i] = wf.wrap(cx, topScope, arg, null);
+                    args[i] = wf.wrap(cx, topScope, arg, TypeInfo.NONE);
                 }
             }
         }
-        Scriptable thisObj = wf.wrapAsJavaObject(cx, topScope, thisObject, null);
+        Scriptable thisObj = wf.wrapAsJavaObject(cx, topScope, thisObject, TypeInfo.NONE);
 
         Object result = function.call(cx, topScope, thisObj, args);
         Class<?> javaResultType = method.getReturnType();

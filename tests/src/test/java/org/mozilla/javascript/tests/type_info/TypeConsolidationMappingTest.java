@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.BaseStream;
@@ -24,11 +25,10 @@ public class TypeConsolidationMappingTest {
 
     @Test
     public void testGeneric() {
-        assertMappingMatch(E.class, "Ta -> Te", "Tb -> Te", "Tc -> String", "Td -> String");
+        assertMappingMatch(E.class, "Ta -> Te[]", "Tb -> Te", "Tc -> List<String>", "Td -> String");
         assertMappingMatch(Collection.class, "T -> E");
 
-        // T from BaseStream -> T from Stream
-        assertMappingMatch(Stream.class, "S -> Stream<T>", "T -> T");
+        assertMappingMatch(Stream.class, "S extends BaseStream<T, S> -> Stream<T>", "T -> T");
 
         // TwoGenericInterfaces<A, B, C> implements Iterator<E -> B>, Map<K -> C, V -> A>
         assertMappingMatch(TwoGenericInterfaces.class, "V -> A", "E -> B", "K -> C");
@@ -43,15 +43,15 @@ public class TypeConsolidationMappingTest {
     public void testGenericParent() {
         assertMappingMatch(
                 GenericSuperClass.class,
-                "Ta -> Integer",
+                "Ta -> Integer[]",
                 "Tb -> Integer",
-                "Tc -> String",
+                "Tc -> List<String>",
                 "Td -> String",
                 "Te -> Integer");
-        assertMappingMatch(GenericSuperInterface.class, "Tc -> Number", "Td -> Number");
+        assertMappingMatch(GenericSuperInterface.class, "Tc -> List<Number>", "Td -> Number");
 
         // E from Enum, T from Comparable
-        assertMappingMatch(NoTypeInfo.class, "T -> NoTypeInfo", "E -> NoTypeInfo");
+        assertMappingMatch(NoTypeInfo.class, "T -> NoTypeInfo", "E extends Enum<E> -> NoTypeInfo");
 
         // TwoInterfaces implements Iterator<E -> Integer>, Map<K -> String, V -> Double>
         assertMappingMatch(TwoInterfaces.class, "V -> Double", "K -> String", "E -> Integer");
@@ -109,9 +109,9 @@ public class TypeConsolidationMappingTest {
                 (k, v) -> {
                     var builder = new StringBuilder();
 
-                    k.append(TypeFormatContext.SIMPLE, builder);
+                    TypeFormatContext.SIMPLE.append(builder, k);
                     builder.append(" -> ");
-                    v.append(TypeFormatContext.SIMPLE, builder);
+                    TypeFormatContext.SIMPLE.append(builder, v);
 
                     formatted.add(builder.toString());
                 });
@@ -120,11 +120,11 @@ public class TypeConsolidationMappingTest {
 
     static class A<Ta> {}
 
-    static class B<Tb> extends A<Tb> {}
+    static class B<Tb> extends A<Tb[]> {}
 
     interface C<Tc> {}
 
-    interface D<Td> extends C<Td> {}
+    interface D<Td> extends C<List<Td>> {}
 
     static class E<Te> extends B<Te> implements D<String> {}
 

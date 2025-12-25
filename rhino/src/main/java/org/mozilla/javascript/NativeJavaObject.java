@@ -41,12 +41,12 @@ public class NativeJavaObject implements Scriptable, SymbolScriptable, Wrapper, 
 
     public NativeJavaObject() {}
 
-    public NativeJavaObject(Scriptable scope, Object javaObject, Class<?> staticType) {
+    public NativeJavaObject(Scriptable scope, Object javaObject, TypeInfo staticType) {
         this(scope, javaObject, staticType, false);
     }
 
     public NativeJavaObject(
-            Scriptable scope, Object javaObject, Class<?> staticType, boolean isAdapter) {
+            Scriptable scope, Object javaObject, TypeInfo staticType, boolean isAdapter) {
         this.parent = scope;
         this.javaObject = javaObject;
         this.staticType = staticType;
@@ -59,9 +59,9 @@ public class NativeJavaObject implements Scriptable, SymbolScriptable, Wrapper, 
         if (javaObject != null) {
             dynamicType = javaObject.getClass();
         } else {
-            dynamicType = staticType;
+            dynamicType = staticType.asClass();
         }
-        members = JavaMembers.lookupClass(parent, dynamicType, staticType, isAdapter);
+        members = JavaMembers.lookupClass(parent, dynamicType, staticType.asClass(), isAdapter);
         fieldAndMethods = members.getFieldAndMethodsObjects(this, javaObject, false);
     }
 
@@ -234,7 +234,7 @@ public class NativeJavaObject implements Scriptable, SymbolScriptable, Wrapper, 
                 value =
                         f.call(
                                 Context.getContext(),
-                                f.getParentScope(),
+                                f.getDeclarationScope(),
                                 this,
                                 ScriptRuntime.emptyArgs);
             } else {
@@ -403,7 +403,7 @@ public class NativeJavaObject implements Scriptable, SymbolScriptable, Wrapper, 
                     }
                 } else if (to.isInterface()) {
 
-                    if (fromObj instanceof NativeFunction) {
+                    if (fromObj instanceof JSFunction) {
                         // See comments in createInterfaceAdapter
                         return 1;
                     }
@@ -802,18 +802,13 @@ public class NativeJavaObject implements Scriptable, SymbolScriptable, Wrapper, 
             Method meth;
             try {
                 meth = value.getClass().getMethod("doubleValue", (Class[]) null);
-            } catch (NoSuchMethodException e) {
-                meth = null;
-            } catch (SecurityException e) {
+            } catch (NoSuchMethodException | SecurityException e) {
                 meth = null;
             }
             if (meth != null) {
                 try {
                     return ((Number) meth.invoke(value, (Object[]) null)).doubleValue();
-                } catch (IllegalAccessException e) {
-                    // XXX: ignore, or error message?
-                    reportConversionError(value, Double.TYPE);
-                } catch (InvocationTargetException e) {
+                } catch (IllegalAccessException | InvocationTargetException e) {
                     // XXX: ignore, or error message?
                     reportConversionError(value, Double.TYPE);
                 }
@@ -879,8 +874,8 @@ public class NativeJavaObject implements Scriptable, SymbolScriptable, Wrapper, 
             out.writeObject(javaObject);
         }
 
-        if (staticType != null) {
-            out.writeObject(staticType.getName());
+        if (staticType != TypeInfo.NONE) {
+            out.writeObject(staticType.asClass().getName());
         } else {
             out.writeObject(null);
         }
@@ -904,9 +899,9 @@ public class NativeJavaObject implements Scriptable, SymbolScriptable, Wrapper, 
 
         String className = (String) in.readObject();
         if (className != null) {
-            staticType = Class.forName(className);
+            staticType = TypeInfoFactory.GLOBAL.create(Class.forName(className));
         } else {
-            staticType = null;
+            staticType = TypeInfo.NONE;
         }
 
         initMembers();
@@ -977,7 +972,7 @@ public class NativeJavaObject implements Scriptable, SymbolScriptable, Wrapper, 
 
     protected transient Object javaObject;
 
-    protected transient Class<?> staticType;
+    protected transient TypeInfo staticType;
     protected transient JavaMembers members;
     private transient Map<String, FieldAndMethods> fieldAndMethods;
     protected transient boolean isAdapter;

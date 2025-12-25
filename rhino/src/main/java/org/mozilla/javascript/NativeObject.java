@@ -124,8 +124,7 @@ public class NativeObject extends ScriptableObject implements Map {
             String name,
             int length,
             SerializableCallable target) {
-        constructor.definePrototypeMethod(
-                scope, name, length, null, target, DONTENUM, DONTENUM | READONLY);
+        constructor.definePrototypeMethod(scope, name, length, target);
     }
 
     @Override
@@ -398,7 +397,7 @@ public class NativeObject extends ScriptableObject implements Map {
                     Integer.toString(args.length));
         }
         Scriptable proto = (args[1] == null) ? null : ensureScriptable(args[1]);
-        if (proto instanceof Symbol) {
+        if (ScriptRuntime.isSymbol(proto)) {
             throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(proto));
         }
 
@@ -410,10 +409,6 @@ public class NativeObject extends ScriptableObject implements Map {
     }
 
     private static Object setPrototypeOf(Object thisObj, Scriptable proto) {
-        if (proto instanceof Symbol) {
-            throw ScriptRuntime.typeErrorById("msg.arg.not.object", ScriptRuntime.brief(proto));
-        }
-
         if (!(thisObj instanceof ScriptableObject)) {
             return thisObj;
         }
@@ -489,6 +484,8 @@ public class NativeObject extends ScriptableObject implements Map {
                     if (key instanceof Integer) {
                         obj.put((Integer) key, obj, value);
                     } else if (key instanceof Symbol && obj instanceof SymbolScriptable) {
+                        // using instanceof is correct here
+                        // (see org.mozilla.javascript.tests.es6.Symbol3Test.fromEntries)
                         ((SymbolScriptable) obj).put((Symbol) key, obj, value);
                     } else {
                         obj.put(ScriptRuntime.toString(key), obj, value);
@@ -572,8 +569,8 @@ public class NativeObject extends ScriptableObject implements Map {
         Scriptable s = getCompatibleObject(cx, scope, arg);
         ScriptableObject obj = ensureScriptableObject(s);
         Object nameArg = args.length < 2 ? Undefined.instance : args[1];
-        Scriptable desc = obj.getOwnPropertyDescriptor(cx, nameArg);
-        return desc == null ? Undefined.instance : desc;
+        var desc = obj.getOwnPropertyDescriptor(cx, nameArg);
+        return desc == null ? Undefined.instance : desc.toObject(scope);
     }
 
     private static Object js_getOwnPropDescs(
@@ -588,15 +585,15 @@ public class NativeObject extends ScriptableObject implements Map {
             ids = obj.getIds(map, true, true);
         }
         for (Object key : ids) {
-            Scriptable desc = obj.getOwnPropertyDescriptor(cx, key);
+            var desc = obj.getOwnPropertyDescriptor(cx, key);
             if (desc == null) {
                 continue;
             } else if (key instanceof Symbol) {
-                descs.put((Symbol) key, descs, desc);
+                descs.put((Symbol) key, descs, desc.toObject(scope));
             } else if (key instanceof Integer) {
-                descs.put((Integer) key, descs, desc);
+                descs.put((Integer) key, descs, desc.toObject(scope));
             } else {
-                descs.put(ScriptRuntime.toString(key), descs, desc);
+                descs.put(ScriptRuntime.toString(key), descs, desc.toObject(scope));
             }
         }
         return descs;
@@ -608,7 +605,8 @@ public class NativeObject extends ScriptableObject implements Map {
         ScriptableObject obj = ensureScriptableObject(arg);
         Object name = args.length < 2 ? Undefined.instance : args[1];
         Object descArg = args.length < 3 ? Undefined.instance : args[2];
-        ScriptableObject desc = ensureScriptableObject(descArg);
+        var desc = new DescriptorInfo(ensureScriptableObject(descArg));
+        ScriptableObject.checkPropertyDefinition(desc);
         obj.defineOwnProperty(cx, name, desc);
         return obj;
     }

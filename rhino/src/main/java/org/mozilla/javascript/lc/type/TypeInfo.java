@@ -130,17 +130,21 @@ public interface TypeInfo {
         return false;
     }
 
-    default boolean shouldConvert() {
-        return true;
+    /**
+     * @return {@code true} if this type contains too little information (e.g. being {@link #NONE})
+     *     and should be replaced by actual object type, {@code false} otherwise
+     */
+    default boolean shouldReplace() {
+        return false;
     }
 
     /**
-     * @see #append(TypeFormatContext, StringBuilder)
+     * @see #toString(TypeFormatContext)
      */
     @Override
     String toString();
 
-    void append(TypeFormatContext ctx, StringBuilder builder);
+    String toString(TypeFormatContext ctx);
 
     /**
      * @see Class#getComponentType()
@@ -271,10 +275,6 @@ public interface TypeInfo {
      */
     default boolean isObjectExact() {
         return false;
-    }
-
-    default void collectComponentClass(Consumer<Class<?>> collector) {
-        collector.accept(asClass());
     }
 
     /**

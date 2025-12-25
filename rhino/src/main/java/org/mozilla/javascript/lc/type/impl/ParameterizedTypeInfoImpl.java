@@ -1,18 +1,22 @@
 package org.mozilla.javascript.lc.type.impl;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 import org.mozilla.javascript.lc.type.ParameterizedTypeInfo;
-import org.mozilla.javascript.lc.type.TypeFormatContext;
 import org.mozilla.javascript.lc.type.TypeInfo;
+import org.mozilla.javascript.lc.type.TypeInfoFactory;
+import org.mozilla.javascript.lc.type.VariableTypeInfo;
 
 public final class ParameterizedTypeInfoImpl extends TypeInfoBase implements ParameterizedTypeInfo {
+    private final TypeInfo ownerType;
     private final TypeInfo rawType;
     private final List<TypeInfo> params;
     private int hashCode;
+    private Map<VariableTypeInfo, TypeInfo> cachedMapping;
 
-    public ParameterizedTypeInfoImpl(TypeInfo rawType, List<TypeInfo> params) {
+    public ParameterizedTypeInfoImpl(TypeInfo ownerType, TypeInfo rawType, List<TypeInfo> params) {
+        this.ownerType = ownerType;
         this.rawType = rawType;
         this.params = params;
         for (var param : params) { // implicit null check on `params`
@@ -31,6 +35,11 @@ public final class ParameterizedTypeInfoImpl extends TypeInfoBase implements Par
     }
 
     @Override
+    public TypeInfo ownerType() {
+        return ownerType;
+    }
+
+    @Override
     public TypeInfo param(int index) {
         if (index < 0 || index >= params.size()) {
             return TypeInfo.NONE;
@@ -40,9 +49,22 @@ public final class ParameterizedTypeInfoImpl extends TypeInfoBase implements Par
     }
 
     @Override
+    public Map<VariableTypeInfo, TypeInfo> extractConsolidationMapping(TypeInfoFactory factory) {
+        if (cachedMapping == null) {
+            cachedMapping = ParameterizedTypeInfo.super.extractConsolidationMapping(factory);
+        }
+        return cachedMapping;
+    }
+
+    @Override
     public int hashCode() {
         if (hashCode == 0) {
             hashCode = rawType.hashCode() * 31 + params.hashCode();
+
+            // make sure computed hashcode is never 0 to prevent computing again
+            if (hashCode == 0) {
+                hashCode = -1;
+            }
         }
 
         return hashCode;
@@ -54,11 +76,6 @@ public final class ParameterizedTypeInfoImpl extends TypeInfoBase implements Par
                 || ((object instanceof ParameterizedTypeInfoImpl)
                         && rawType.equals(((ParameterizedTypeInfoImpl) object).rawType)
                         && params.equals(((ParameterizedTypeInfoImpl) object).params));
-    }
-
-    @Override
-    public void append(TypeFormatContext ctx, StringBuilder builder) {
-        ctx.formatParameterized(builder, this);
     }
 
     @Override
@@ -77,10 +94,11 @@ public final class ParameterizedTypeInfoImpl extends TypeInfoBase implements Par
     }
 
     @Override
-    public void collectComponentClass(Consumer<Class<?>> collector) {
-        rawType.collectComponentClass(collector);
-        for (var param : params) {
-            param.collectComponentClass(collector);
-        }
+    public TypeInfo consolidate(Map<VariableTypeInfo, TypeInfo> mapping) {
+        var params = this.params;
+        var consolidated = TypeInfoFactory.consolidateAll(params, mapping);
+        return params == consolidated
+                ? this
+                : new ParameterizedTypeInfoImpl(NONE, rawType, consolidated);
     }
 }
