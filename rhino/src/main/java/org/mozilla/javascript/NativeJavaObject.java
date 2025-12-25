@@ -41,8 +41,17 @@ public class NativeJavaObject implements Scriptable, SymbolScriptable, Wrapper, 
 
     public NativeJavaObject() {}
 
+    public NativeJavaObject(Scriptable scope, Object javaObject, Class<?> legacyStaticType) {
+        this(scope, javaObject, TypeInfoFactory.GLOBAL.create(legacyStaticType));
+    }
+
     public NativeJavaObject(Scriptable scope, Object javaObject, TypeInfo staticType) {
         this(scope, javaObject, staticType, false);
+    }
+
+    public NativeJavaObject(
+            Scriptable scope, Object javaObject, Class<?> legacyStaticType, boolean isAdapter) {
+        this(scope, javaObject, TypeInfoFactory.GLOBAL.create(legacyStaticType), isAdapter);
     }
 
     public NativeJavaObject(

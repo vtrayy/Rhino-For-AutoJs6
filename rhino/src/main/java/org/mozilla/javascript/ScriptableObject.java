@@ -1785,6 +1785,10 @@ public abstract class ScriptableObject extends SlotMapOwner
             return desc;
         }
 
+        public ScriptableObject toScriptableObject(Scriptable scope) {
+            return ((ScriptableObject) toObject(scope));
+        }
+
         public boolean isWritable() {
             return Boolean.TRUE.equals(writable);
         }
